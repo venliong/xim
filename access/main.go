@@ -8,12 +8,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 )
 
 var Sig string
@@ -49,24 +47,19 @@ func sigHandler() {
 	}()
 }
 
+var proto = flag.String("proto", "http", "access proto. tcp or http")
+
 func main() {
 	flag.Parse()
 
 	sigHandler()
 
-	http.Handle("/sayhi", &SayhiHandler{})
-	http.Handle("/push", &PushMessageHandler{})
-
-	s := &http.Server{
-		Addr:           ConfJson["listenaddr"].(string),
-		ReadTimeout:    10 * time.Minute,
-		WriteTimeout:   10 * time.Minute,
-		MaxHeaderBytes: 1 << 20,
+	switch *proto {
+	case "tcp":
+		TcpAccess()
+	case "http":
+		HttpAccess()
+	default:
+		panic("Error proto: " + *proto)
 	}
-
-	fmt.Println("IM GO...", ConfJson["listenaddr"].(string))
-	if err := s.ListenAndServe(); err != nil {
-		panic("ListenAndServe: " + err.Error())
-	}
-
 }

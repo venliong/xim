@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 
 	log "github.com/golang/glog"
@@ -33,8 +34,8 @@ func (this *SayhiHandler) doGet(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		msg := <-users[name]
-		w.Write(msg)
-		break
+		io.WriteString(w, string(msg))
+		io.WriteString(w, "\n")
 	}
 
 	return
