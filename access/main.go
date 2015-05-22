@@ -12,17 +12,29 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 )
 
-var Sig string
-var ConfJson map[string]interface{} // 系统配置信息
+const (
+	HEARTBEAT = time.Duration(3) * time.Second
+)
 
-var users map[string]chan []byte
+var (
+	Sig      string
+	ConfJson map[string]interface{} // 系统配置信息
+	users    map[string]*User       // 所有在线用户
+
+)
+
+type User struct {
+	ch   chan []byte
+	beat int64
+}
 
 func init() {
 	runtime.GOMAXPROCS(8)
 
-	users = make(map[string]chan []byte, 1000000)
+	users = make(map[string]*User, 100000)
 
 	r, err := os.Open("./access.conf")
 	if err != nil {

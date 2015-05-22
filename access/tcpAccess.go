@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 
 	log "github.com/golang/glog"
 )
@@ -17,7 +18,7 @@ func TcpAccess() {
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
-			log.Errorln("accept ERR:", err.Error())
+			// log.Errorln("accept ERR:", err.Error())
 			continue
 		}
 		defer conn.Close()
@@ -27,11 +28,18 @@ func TcpAccess() {
 			data := make([]byte, 4096)
 
 			for {
+				conn.SetReadDeadline(time.Now().Add(time.Duration(HEARTBEAT)))
 				i, err := conn.Read(data)
 				if err != nil {
 					log.Errorln("read from client ERR:", err.Error())
-					break
+					fmt.Println("are you die?")
 				}
+
+				if i == 2 && data[0] == 'B' && data[1] == 'B' {
+					fmt.Println("heartbeat...")
+					continue
+				}
+
 				log.Infoln("read from client:", string(data[0:i]))
 
 				conn.Write([]byte("OK"))

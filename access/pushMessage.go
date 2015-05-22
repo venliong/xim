@@ -29,7 +29,7 @@ func (this *PushMessageHandler) doGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users[name] <- []byte(msg)
+	users[name].ch <- []byte(msg)
 
 	return
 }

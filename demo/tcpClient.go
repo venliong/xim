@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 const (
@@ -17,6 +18,15 @@ func main() {
 	}
 	defer conn.Close()
 	fmt.Println("dial ok.")
+
+	go func() {
+		for {
+			time.Sleep(30 * time.Second)
+			if _, err = conn.Write([]byte{'B', 'B'}); err != nil {
+				panic(err)
+			}
+		}
+	}()
 
 	sms := make([]byte, 4096)
 	for {

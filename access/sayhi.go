@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net/http"
+	"time"
 
 	log "github.com/golang/glog"
 )
@@ -30,10 +31,10 @@ func (this *SayhiHandler) doGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users[name] = make(chan []byte)
+	users[name] = &User{make(chan []byte), time.Now().Unix()}
 
 	for {
-		msg := <-users[name]
+		msg := <-users[name].ch
 		io.WriteString(w, string(msg))
 		io.WriteString(w, "\n")
 	}
