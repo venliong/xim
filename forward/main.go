@@ -8,14 +8,29 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 )
 
-var Sig string
-var ConfJson map[string]interface{} // 系统配置信息
+var (
+	Sig      string
+	ConfJson AppConf            // 系统配置信息
+	accesss  map[string]*Access // 所有接入服务器
+)
+
+type AppConf struct {
+	Accesss []string `json:"accesss"`
+	Userids []int64  `json:"userids"`
+}
+
+type Access struct {
+	url  string
+	ch   chan []byte
+	conn net.Conn
+}
 
 func init() {
 	runtime.GOMAXPROCS(8)
@@ -43,8 +58,16 @@ func sigHandler() {
 	}()
 }
 
+func connToAccess(addr string) {
+	return
+}
+
 func main() {
 	flag.Parse()
 
 	sigHandler()
+
+	for _, one := range ConfJson.Accesss {
+		fmt.Println(one)
+	}
 }
