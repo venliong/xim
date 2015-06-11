@@ -21,30 +21,29 @@ func TcpAccess() {
 			// log.Errorln("accept ERR:", err.Error())
 			continue
 		}
-		defer conn.Close()
 		log.Infoln("accept OK:", conn.RemoteAddr().String())
 
-		go func() {
-			data := make([]byte, 4096)
+		go func(c *net.TCPConn) {
+			defer c.Close()
 
 			for {
-				conn.SetReadDeadline(time.Now().Add(time.Duration(HEARTBEAT)))
+				data := make([]byte, 4096)
+
+				conn.SetReadDeadline(time.Now().Add(time.Duration(HEARTBEAT * 3)))
 				i, err := conn.Read(data)
 				if err != nil {
 					log.Errorln("read from client ERR:", err.Error())
-					fmt.Println("are you die?")
+					break
 				}
 
-				if i == 2 && data[0] == 'B' && data[1] == 'B' {
-					fmt.Println("heartbeat...")
+				if i == 4 && data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 0 {
 					continue
 				}
 
 				log.Infoln("read from client:", string(data[0:i]))
-
-				conn.Write([]byte("OK"))
+				fmt.Println(">>> ", string(data[0:i]))
 			}
 
-		}()
+		}(conn)
 	}
 }

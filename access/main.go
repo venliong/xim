@@ -1,5 +1,5 @@
 /*
-HTTP长连接接入
+接入层
 */
 
 package main
@@ -13,6 +13,9 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+
+	"github.com/liuhengloveyou/nodenet"
+	"github.com/liuhengloveyou/xim"
 )
 
 const (
@@ -20,21 +23,22 @@ const (
 )
 
 var (
+	mynode   *nodenet.Component
 	Sig      string
 	ConfJson map[string]interface{} // 系统配置信息
-	users    map[string]*User       // 所有在线用户
+	users    *xim.Session           // 所有在线用户会话
 
 )
 
 type User struct {
-	ch   chan []byte
+	ch   chan string
 	beat int64
 }
 
 func init() {
 	runtime.GOMAXPROCS(8)
 
-	users = make(map[string]*User, 100000)
+	users = xim.NewSession()
 
 	r, err := os.Open("./access.conf")
 	if err != nil {
@@ -46,6 +50,26 @@ func init() {
 	if err := decoder.Decode(&ConfJson); err != nil {
 		panic(err)
 	}
+}
+
+func initNodenet() {
+	nodenet.BuildFromConfig("./nodenet.conf")
+
+	mynode = nodenet.GetComponentByName(ConfJson["nodeName"].(string))
+	if mynode != nil {
+		mynode.SetHandler(accessWork)
+		go mynode.Run()
+	}
+}
+
+func accessWork(msg interface{}) (result interface{}, err error) {
+	fmt.Println(mynode.Name, msg)
+
+	iMsg := msg.(map[string]interface{})["content"].(map[string]interface{})
+
+	users.Get(iMsg["to"].(string)).(*User).ch <- iMsg["msg"].(string)
+
+	return nil, nil
 }
 
 func sigHandler() {
@@ -65,6 +89,8 @@ func main() {
 	flag.Parse()
 
 	sigHandler()
+
+	initNodenet()
 
 	switch *proto {
 	case "tcp":

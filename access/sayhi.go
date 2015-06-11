@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -31,13 +31,14 @@ func (this *SayhiHandler) doGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users[name] = &User{make(chan []byte), time.Now().Unix()}
-
-	for {
-		msg := <-users[name].ch
-		io.WriteString(w, string(msg))
-		io.WriteString(w, "\n")
+	user := users.Get(name)
+	if user == nil {
+		user = &User{make(chan string), time.Now().Unix()}
+		users.Set(name, user)
+		log.Infoln("login:", name)
 	}
+
+	w.Write([]byte(<-user.(*User).ch))
 
 	return
 }
