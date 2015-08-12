@@ -10,8 +10,8 @@ import (
 )
 
 func HttpAccess() {
-	http.Handle("/sayhi", &SayhiHandler{})
-	http.Handle("/push", &PushMessageHandler{})
+	http.HandleFunc("/sayhi", sayHi)
+	http.HandleFunc("/push", pushMessage)
 	http.HandleFunc("/send", sendMessage)
 
 	s := &http.Server{
@@ -25,6 +25,29 @@ func HttpAccess() {
 	if err := s.ListenAndServe(); err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
+}
+
+func sayHi(w http.ResponseWriter, r *http.Request) {
+	const USAGE = "GET /sayhi?name=xxx"
+
+	r.ParseForm()
+	name := r.FormValue("name")
+	if name == "" {
+		log.Errorln("sayhi ERR:", name)
+		WriteErr(w, http.StatusBadRequest, []byte(USAGE))
+		return
+	}
+
+	user := users.Get(name)
+	if user == nil {
+		user = &User{make(chan string), time.Now().Unix()}
+		users.Set(name, user)
+		log.Infoln("login:", name)
+	}
+
+	w.Write([]byte(<-user.(*User).ch))
+
+	return
 }
 
 // 发消息
@@ -41,4 +64,20 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 
 	err := nodenet.SendMsgToNext(g[0], cMsg)
 	fmt.Println(err)
+}
+
+func pushMessage(w http.ResponseWriter, r *http.Request) {
+	const USAGE = "GET /sayhi?name=xxx&msg=xxx"
+
+	r.ParseForm()
+	name, msg := r.FormValue("name"), r.FormValue("msg")
+	if name == "" || msg == "" {
+		log.Errorln("pushmessage ERR:", name, msg)
+		WriteErr(w, http.StatusBadRequest, []byte(USAGE))
+		return
+	}
+
+	users.Get(name).(User).ch <- msg
+
+	return
 }

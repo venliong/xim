@@ -83,7 +83,7 @@ func sigHandler() {
 	}()
 }
 
-var proto = flag.String("proto", "http", "access proto. tcp or http")
+var proto = flag.String("proto", "http", "tcp || http")
 
 func main() {
 	flag.Parse()
