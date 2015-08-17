@@ -2,14 +2,18 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
+	log "github.com/golang/glog"
+	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/xim"
 )
 
 func HttpAccess() {
+	http.HandleFunc("/login", login)
 	http.HandleFunc("/sayhi", sayHi)
 	http.HandleFunc("/push", pushMessage)
 	http.HandleFunc("/send", sendMessage)
@@ -27,6 +31,19 @@ func HttpAccess() {
 	}
 }
 
+func login(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		gocommon.HttpErr(w, http.StatusBadRequest, []byte(err.Error()))
+		log.Errorln("ioutil.ReadAll(r.Body) ERR: ", err)
+		return
+	}
+	log.Infoln(string(body))
+
+	stat, rst, e := passport.UserLogin(body)
+	fmt.Println(stat, rst, e)
+}
+
 func sayHi(w http.ResponseWriter, r *http.Request) {
 	const USAGE = "GET /sayhi?name=xxx"
 
@@ -34,7 +51,7 @@ func sayHi(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	if name == "" {
 		log.Errorln("sayhi ERR:", name)
-		WriteErr(w, http.StatusBadRequest, []byte(USAGE))
+		gocommon.HttpErr(w, http.StatusBadRequest, []byte(USAGE))
 		return
 	}
 
@@ -73,7 +90,7 @@ func pushMessage(w http.ResponseWriter, r *http.Request) {
 	name, msg := r.FormValue("name"), r.FormValue("msg")
 	if name == "" || msg == "" {
 		log.Errorln("pushmessage ERR:", name, msg)
-		WriteErr(w, http.StatusBadRequest, []byte(USAGE))
+		gocommon.HttpErr(w, http.StatusBadRequest, []byte(USAGE))
 		return
 	}
 

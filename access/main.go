@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/liuhengloveyou/nodenet"
+	"github.com/liuhengloveyou/passport/client"
 	"github.com/liuhengloveyou/xim"
 )
 
@@ -23,11 +24,12 @@ const (
 )
 
 var (
+	ConfJson map[string]interface{} // 系统配置信息
+
 	mynode   *nodenet.Component
 	Sig      string
-	ConfJson map[string]interface{} // 系统配置信息
-	users    *xim.Session           // 所有在线用户会话
-
+	users    *xim.Session // 所有在线用户会话
+	passport *client.Passport
 )
 
 type User struct {
@@ -91,6 +93,8 @@ func main() {
 	sigHandler()
 
 	initNodenet()
+
+	passport = &client.Passport{ServAddr: ConfJson["passport"].(string)}
 
 	switch *proto {
 	case "tcp":
