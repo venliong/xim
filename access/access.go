@@ -2,7 +2,7 @@
 接入层
 */
 
-package main
+package access
 
 import (
 	"encoding/json"
@@ -33,8 +33,9 @@ var (
 )
 
 type User struct {
-	ch   chan string
-	beat int64
+	ID  string
+	ch  chan []byte
+	act int64
 }
 
 func init() {
@@ -55,7 +56,7 @@ func init() {
 }
 
 func initNodenet() {
-	nodenet.BuildFromConfig("./nodenet.conf")
+	nodenet.BuildFromConfig("../example/nodenet.conf")
 
 	mynode = nodenet.GetComponentByName(ConfJson["nodeName"].(string))
 	if mynode != nil {
@@ -69,7 +70,7 @@ func accessWork(msg interface{}) (result interface{}, err error) {
 
 	iMsg := msg.(map[string]interface{})["content"].(map[string]interface{})
 
-	users.Get(iMsg["to"].(string)).(*User).ch <- iMsg["msg"].(string)
+	users.Get(iMsg["to"].(string)).(*User).ch <- iMsg["msg"].([]byte)
 
 	return nil, nil
 }
@@ -85,9 +86,9 @@ func sigHandler() {
 	}()
 }
 
-var proto = flag.String("proto", "http", "tcp || http")
+var proto = flag.String("proto", "http", "tcp or http?")
 
-func main() {
+func StartService() {
 	flag.Parse()
 
 	sigHandler()

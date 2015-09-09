@@ -4,6 +4,7 @@ import (
 //"encoding/json"
 )
 
+// 消息类型
 const (
 	MSG_SENDMSG = iota // 发消息
 )

@@ -1,4 +1,4 @@
-package main
+package access
 
 import (
 	"fmt"
@@ -13,9 +13,10 @@ import (
 )
 
 func HttpAccess() {
-	http.HandleFunc("/login", login)
-	http.HandleFunc("/sayhi", sayHi)
-	http.HandleFunc("/push", pushMessage)
+	http.HandleFunc("/user/", userHandler)
+	http.HandleFunc("/friend/", friendHandler)
+
+	http.HandleFunc("/recv", recvMessage)
 	http.HandleFunc("/send", sendMessage)
 
 	s := &http.Server{
@@ -31,7 +32,31 @@ func HttpAccess() {
 	}
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func doOptions(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:63342")
+	w.Header().Add("Access-Control-Allow-Methods", "POST")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Add("Access-Control-Allow-Headers", "X-API, X-REQUEST-ID, X-API-TRANSACTION, X-API-TRANSACTION-TIMEOUT, X-RANGE, Origin, X-Requested-With, Content-Type, Accept")
+	w.Header().Add("P3P", `CP="CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR"`)
+
+	return
+}
+
+func friendHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.Method + " " + r.RequestURI)
+	if r.Method == "OPTIONS" {
+		doOptions(w, r)
+		return
+	}
+}
+
+func userHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.Method + " " + r.RequestURI)
+	if r.Method == "OPTIONS" {
+		doOptions(w, r)
+		return
+	}
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusBadRequest, []byte(err.Error()))
@@ -40,37 +65,37 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Infoln(string(body))
 
-	stat, rst, e := passport.UserLogin(body)
-	fmt.Println(stat, rst, e)
-}
-
-func sayHi(w http.ResponseWriter, r *http.Request) {
-	const USAGE = "GET /sayhi?name=xxx"
-
-	r.ParseForm()
-	name := r.FormValue("name")
-	if name == "" {
-		log.Errorln("sayhi ERR:", name)
-		gocommon.HttpErr(w, http.StatusBadRequest, []byte(USAGE))
+	stat, cookies, response, e := passport.Execute(r.RequestURI, body, r.Cookies())
+	if e != nil {
+		gocommon.HttpErr(w, http.StatusInternalServerError, []byte(e.Error()))
+		log.Errorln("call passport ERR: ", err)
 		return
 	}
+	fmt.Println(stat, string(response), e)
 
-	user := users.Get(name)
-	if user == nil {
-		user = &User{make(chan string), time.Now().Unix()}
-		users.Set(name, user)
-		log.Infoln("login:", name)
+	if cookies != nil {
+		for _, cookie := range cookies {
+			http.SetCookie(w, cookie)
+		}
 	}
 
-	w.Write([]byte(<-user.(*User).ch))
+	doOptions(w, r)
+	gocommon.HttpErr(w, stat, response)
 
 	return
 }
 
-// 发消息
 func sendMessage(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	to, msg := r.FormValue("to"), r.FormValue("msg")
+	log.Infoln(to, msg)
+
+	user := users.Get(to)
+	if user != nil {
+		user.(*User).ch <- []byte(msg)
+		gocommon.HttpErr(w, http.StatusOK, nil)
+		return
+	}
 
 	iMsg := xim.Message{xim.MSG_SENDMSG, xim.Message_SendMsg{"", string(to), string(msg)}}
 	fmt.Println("iMsg: ", iMsg)
@@ -83,18 +108,25 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(err)
 }
 
-func pushMessage(w http.ResponseWriter, r *http.Request) {
-	const USAGE = "GET /sayhi?name=xxx&msg=xxx"
+func recvMessage(w http.ResponseWriter, r *http.Request) {
+	// const USAGE = "GET /recv?userid=xxx&key=xxx"
 
 	r.ParseForm()
-	name, msg := r.FormValue("name"), r.FormValue("msg")
-	if name == "" || msg == "" {
-		log.Errorln("pushmessage ERR:", name, msg)
-		gocommon.HttpErr(w, http.StatusBadRequest, []byte(USAGE))
+	userid, key := r.FormValue("userid"), r.FormValue("key")
+	if userid == "" || key == "" {
+		log.Errorln("recvMessage ERR:", userid, key)
+		gocommon.HttpErr(w, http.StatusBadRequest, nil)
 		return
 	}
 
-	users.Get(name).(User).ch <- msg
+	user := users.Get(userid)
+	if user == nil {
+		user = &User{ID: userid, ch: make(chan []byte), act: time.Now().Unix()}
+		users.Set(userid, user)
+		log.Infoln("login:", userid)
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, <-user.(*User).ch)
 
 	return
 }
