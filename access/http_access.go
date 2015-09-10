@@ -1,4 +1,4 @@
-package access
+package main
 
 import (
 	"fmt"
@@ -8,8 +8,6 @@ import (
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/nodenet"
-	"github.com/liuhengloveyou/xim"
 )
 
 func HttpAccess() {
@@ -20,13 +18,13 @@ func HttpAccess() {
 	http.HandleFunc("/send", sendMessage)
 
 	s := &http.Server{
-		Addr:           fmt.Sprintf("%v:%v", ConfJson["addr"].(string), ConfJson["port"].(float64)),
+		Addr:           fmt.Sprintf("%v:%v", Conf.Addr, Conf.Port),
 		ReadTimeout:    10 * time.Minute,
 		WriteTimeout:   10 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	fmt.Printf("HTTP IM GO... %v:%v\n", ConfJson["addr"].(string), ConfJson["port"].(float64))
+	fmt.Printf("HTTP IM GO... %v:%v\n", Conf.Addr, Conf.Port)
 	if err := s.ListenAndServe(); err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
@@ -87,30 +85,16 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	to, msg := r.FormValue("to"), r.FormValue("msg")
-	log.Infoln(to, msg)
+	from, to, msg := r.FormValue("userid"), r.FormValue("to"), r.FormValue("msg")
+	log.Infoln(from, to, msg)
 
-	user := users.Get(to)
-	if user != nil {
-		user.(*User).ch <- []byte(msg)
-		gocommon.HttpErr(w, http.StatusOK, nil)
-		return
-	}
+	SendMsgToUser(from, to, msg)
+	gocommon.HttpErr(w, http.StatusOK, []byte("OK"))
 
-	iMsg := xim.Message{xim.MSG_SENDMSG, xim.Message_SendMsg{"", string(to), string(msg)}}
-	fmt.Println("iMsg: ", iMsg)
-
-	g := nodenet.GetGraphByName("sendmsg")
-	cMsg, _ := nodenet.NewMessage(ConfJson["nodeName"].(string), g, iMsg)
-	fmt.Println("cMsg: ", cMsg)
-
-	err := nodenet.SendMsgToNext(g[0], cMsg)
-	fmt.Println(err)
+	return
 }
 
 func recvMessage(w http.ResponseWriter, r *http.Request) {
-	// const USAGE = "GET /recv?userid=xxx&key=xxx"
-
 	r.ParseForm()
 	userid, key := r.FormValue("userid"), r.FormValue("key")
 	if userid == "" || key == "" {
@@ -118,6 +102,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusBadRequest, nil)
 		return
 	}
+	log.Infoln("recv: ", userid)
 
 	user := users.Get(userid)
 	if user == nil {

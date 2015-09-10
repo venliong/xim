@@ -2,7 +2,7 @@
 接入层
 */
 
-package access
+package main
 
 import (
 	"encoding/json"
@@ -10,25 +10,34 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/client"
-	"github.com/liuhengloveyou/xim"
+	"github.com/liuhengloveyou/xim/common"
+
+	log "github.com/golang/glog"
+	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 const (
 	HEARTBEAT = time.Duration(3) * time.Second
 )
 
-var (
-	ConfJson map[string]interface{} // 系统配置信息
+type Config struct {
+	Addr     string `json:"addr"`
+	Port     int    `json:"port"`
+	NodeName string `json:"nodeName"`
+	NodeConf string `json:"nodeConf"`
+	Passport string `json:"passport"`
+}
 
+var (
+	Conf     Config // 系统配置信息
 	mynode   *nodenet.Component
 	Sig      string
-	users    *xim.Session // 所有在线用户会话
+	users    *common.Session // 所有在线用户会话
 	passport *client.Passport
 )
 
@@ -39,40 +48,66 @@ type User struct {
 }
 
 func init() {
-	runtime.GOMAXPROCS(8)
-
-	users = xim.NewSession()
-
-	r, err := os.Open("./access.conf")
-	if err != nil {
-		panic(err)
+	if e := gocommon.LoadJsonConfig("access.conf", &Conf); e != nil {
+		panic(e)
 	}
-	defer r.Close()
 
-	decoder := json.NewDecoder(r)
-	if err := decoder.Decode(&ConfJson); err != nil {
-		panic(err)
+	if e := initNodenet(Conf.NodeConf); e != nil {
+		panic(e)
 	}
+
+	users = common.NewSession()
+
 }
 
-func initNodenet() {
-	nodenet.BuildFromConfig("../example/nodenet.conf")
+func initNodenet(fn string) error {
+	if e := nodenet.BuildFromConfig(fn); e != nil {
+		return e
+	}
 
-	mynode = nodenet.GetComponentByName(ConfJson["nodeName"].(string))
+	mynode = nodenet.GetComponentByName(Conf.NodeName)
 	if mynode != nil {
 		mynode.SetHandler(accessWork)
 		go mynode.Run()
 	}
+
+	return nil
 }
 
 func accessWork(msg interface{}) (result interface{}, err error) {
-	fmt.Println(mynode.Name, msg)
+	log.Infoln(Conf.NodeName, "msg: ", msg)
 
-	iMsg := msg.(map[string]interface{})["content"].(map[string]interface{})
+	b, _ := json.Marshal((msg.(map[string]interface{}))["content"])
 
-	users.Get(iMsg["to"].(string)).(*User).ch <- iMsg["msg"].([]byte)
+	log.Infoln(string(b))
+	var sm common.Message_SendMsg
+
+	json.Unmarshal(b, &sm)
+	log.Infoln("sm:", sm)
+
+	user := users.Get(sm.ToUser)
+	if user == nil {
+		log.Errorln("No such user: ", sm.ToUser)
+		return nil, nil
+	}
+
+	user.(*User).ch <- []byte(sm.Msg)
 
 	return nil, nil
+}
+
+func SendMsgToUser(fromuserid, touserid, message string) error {
+	iMsg := common.Message{common.MSG_SENDMSG, common.Message_SendMsg{fromuserid, touserid, message}}
+	fmt.Println("iMsg: ", iMsg)
+
+	g := nodenet.GetGraphByName("send")
+	cMsg, _ := nodenet.NewMessage(Conf.NodeName, g, iMsg)
+	fmt.Println("cMsg: ", cMsg)
+
+	err := nodenet.SendMsgToNext(cMsg)
+	fmt.Println(err)
+
+	return nil
 }
 
 func sigHandler() {
@@ -88,14 +123,12 @@ func sigHandler() {
 
 var proto = flag.String("proto", "http", "tcp or http?")
 
-func StartService() {
+func main() {
 	flag.Parse()
 
 	sigHandler()
 
-	initNodenet()
-
-	passport = &client.Passport{ServAddr: ConfJson["passport"].(string)}
+	passport = &client.Passport{ServAddr: Conf.Passport}
 
 	switch *proto {
 	case "tcp":

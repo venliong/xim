@@ -1,7 +1,8 @@
-package xim
+package common
 
 import (
 //"encoding/json"
+
 )
 
 // 消息类型

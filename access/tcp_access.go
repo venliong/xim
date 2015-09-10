@@ -1,4 +1,4 @@
-package access
+package main
 
 import (
 	"fmt"
@@ -9,11 +9,11 @@ import (
 )
 
 func TcpAccess() {
-	listen, err := net.ListenTCP("tcp", &net.TCPAddr{net.ParseIP(ConfJson["addr"].(string)), int(ConfJson["port"].(float64)), ""})
+	listen, err := net.ListenTCP("tcp", &net.TCPAddr{net.ParseIP(Conf.Addr), Conf.Port, ""})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("TCP IM GO... %v:%v", ConfJson["addr"].(string), ConfJson["port"].(float64))
+	fmt.Printf("TCP IM GO... %v:%v", Conf.Addr, Conf.Port)
 
 	for {
 		conn, err := listen.AcceptTCP()
