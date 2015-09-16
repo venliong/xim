@@ -1,4 +1,4 @@
-package common
+package xim
 
 import (
 //"encoding/json"

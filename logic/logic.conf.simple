@@ -1,0 +1,8 @@
+{
+"addr": "",
+"port": 7070,
+
+"nodeNames":["tgroup-127.0.0.1.6001"],
+"nodeConf":"../nodenet.conf",
+"passport":"http://127.0.0.1:8080"
+}

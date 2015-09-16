@@ -1,0 +1,16 @@
+{
+"addr": "",
+"port": 6060,
+"session":{
+	"cookie_name":   "passportsessionid",
+	"idle_time":     259200,
+	"cookie_expire": 259200,
+	"domain":        "domain",
+	"store_type":    "mem",	
+	"store_config":  ""
+},
+
+"nodeName":"access-1",
+"nodeConf":"../nodenet.conf",
+"passport":"http://127.0.0.1:8080"
+}

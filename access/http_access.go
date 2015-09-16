@@ -54,18 +54,22 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		doOptions(w, r)
 		return
 	}
+	if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusNotImplemented, "只支持POST请求.")
+		return
+	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		gocommon.HttpErr(w, http.StatusBadRequest, []byte(err.Error()))
+		gocommon.HttpErr(w, http.StatusBadRequest, err.Error())
 		log.Errorln("ioutil.ReadAll(r.Body) ERR: ", err)
 		return
 	}
-	log.Infoln(string(body))
+	log.Infoln(r.RequestURI, string(body))
 
 	stat, cookies, response, e := passport.Execute(r.RequestURI, body, r.Cookies())
 	if e != nil {
-		gocommon.HttpErr(w, http.StatusInternalServerError, []byte(e.Error()))
+		gocommon.HttpErr(w, http.StatusInternalServerError, e.Error())
 		log.Errorln("call passport ERR: ", err)
 		return
 	}
@@ -78,18 +82,31 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	doOptions(w, r)
-	gocommon.HttpErr(w, stat, response)
+	gocommon.HttpErr(w, stat, string(response))
 
 	return
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	from, to, msg := r.FormValue("userid"), r.FormValue("to"), r.FormValue("msg")
-	log.Infoln(from, to, msg)
+	api := r.Header.Get("X-API")
+	if api == "" {
+		log.Errorln("X-API nil")
+		gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
+		return
+	}
+	log.Infoln("X-API:", api)
 
-	SendMsgToUser(from, to, msg)
-	gocommon.HttpErr(w, http.StatusOK, []byte("OK"))
+	r.ParseForm()
+	userid, msg := r.FormValue("userid"), r.FormValue("msg")
+	if userid == "" || msg == "" {
+		log.Errorf("param ERR:[%s],[%s].", userid, msg)
+		gocommon.HttpErr(w, http.StatusBadRequest, "请求参数错误.")
+		return
+	}
+	log.Infoln(api, userid, msg)
+
+	//SendMsgToUser(from, to, msg)
+	gocommon.HttpErr(w, http.StatusOK, "OK")
 
 	return
 }
@@ -99,15 +116,16 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	userid, key := r.FormValue("userid"), r.FormValue("key")
 	if userid == "" || key == "" {
 		log.Errorln("recvMessage ERR:", userid, key)
-		gocommon.HttpErr(w, http.StatusBadRequest, nil)
+		gocommon.HttpErr(w, http.StatusBadRequest, "")
 		return
 	}
 	log.Infoln("recv: ", userid)
 
-	user := users.Get(userid)
+	sess, _ := users.GetSessionById(userid)
+	user := sess.Get("info")
 	if user == nil {
-		user = &User{ID: userid, ch: make(chan []byte), act: time.Now().Unix()}
-		users.Set(userid, user)
+		user = &User{ID: userid, ch: make(chan string), act: time.Now().Unix()}
+		sess.Set("info", user)
 		log.Infoln("login:", userid)
 	}
 

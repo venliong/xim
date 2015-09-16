@@ -15,7 +15,8 @@ import (
 
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/client"
-	"github.com/liuhengloveyou/xim/common"
+	"github.com/liuhengloveyou/passport/session"
+	"github.com/liuhengloveyou/xim"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -26,39 +27,32 @@ const (
 )
 
 type Config struct {
-	Addr     string `json:"addr"`
-	Port     int    `json:"port"`
-	NodeName string `json:"nodeName"`
-	NodeConf string `json:"nodeConf"`
-	Passport string `json:"passport"`
+	Addr     string      `json:"addr"`
+	Port     int         `json:"port"`
+	NodeName string      `json:"nodeName"`
+	NodeConf string      `json:"nodeConf"`
+	Passport string      `json:"passport"`
+	Session  interface{} `json:"session"`
 }
 
 var (
 	Conf     Config // 系统配置信息
+	users    *session.SessionManager
 	mynode   *nodenet.Component
 	Sig      string
-	users    *common.Session // 所有在线用户会话
 	passport *client.Passport
 )
 
 type User struct {
 	ID  string
-	ch  chan []byte
+	ch  chan string
 	act int64
 }
 
-func init() {
-	if e := gocommon.LoadJsonConfig("access.conf", &Conf); e != nil {
-		panic(e)
-	}
-
-	if e := initNodenet(Conf.NodeConf); e != nil {
-		panic(e)
-	}
-
-	users = common.NewSession()
-
-}
+var (
+	confile = flag.String("c", "access.conf.sample", "配置文件路径.")
+	proto   = flag.String("p", "http", "接入网络协议.")
+)
 
 func initNodenet(fn string) error {
 	if e := nodenet.BuildFromConfig(fn); e != nil {
@@ -80,24 +74,25 @@ func accessWork(msg interface{}) (result interface{}, err error) {
 	b, _ := json.Marshal((msg.(map[string]interface{}))["content"])
 
 	log.Infoln(string(b))
-	var sm common.Message_SendMsg
+	var sm xim.Message_SendMsg
 
 	json.Unmarshal(b, &sm)
 	log.Infoln("sm:", sm)
 
-	user := users.Get(sm.ToUser)
+	sess, _ := users.GetSessionById(sm.ToUser)
+	user := sess.Get("info")
 	if user == nil {
 		log.Errorln("No such user: ", sm.ToUser)
 		return nil, nil
 	}
 
-	user.(*User).ch <- []byte(sm.Msg)
+	user.(*User).ch <- sm.Msg
 
 	return nil, nil
 }
 
 func SendMsgToUser(fromuserid, touserid, message string) error {
-	iMsg := common.Message{common.MSG_SENDMSG, common.Message_SendMsg{fromuserid, touserid, message}}
+	iMsg := xim.Message{xim.MSG_SENDMSG, xim.Message_SendMsg{fromuserid, touserid, message}}
 	fmt.Println("iMsg: ", iMsg)
 
 	g := nodenet.GetGraphByName("send")
@@ -121,14 +116,21 @@ func sigHandler() {
 	}()
 }
 
-var proto = flag.String("proto", "http", "tcp or http?")
-
 func main() {
 	flag.Parse()
 
-	sigHandler()
+	if e := gocommon.LoadJsonConfig(*confile, &Conf); e != nil {
+		panic(e)
+	}
 
+	if e := initNodenet(Conf.NodeConf); e != nil {
+		panic(e)
+	}
+
+	users = session.NewSessionManager(Conf.Session)
 	passport = &client.Passport{ServAddr: Conf.Passport}
+
+	sigHandler()
 
 	switch *proto {
 	case "tcp":
