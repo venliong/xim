@@ -14,20 +14,20 @@
         "intype": "tcp",
 	"inconf": {
 	      "url": "127.0.0.1:5001",
-	      "timeout": 10}
+	      "timeout": 3}
 	},
 	{
         "name": "tgroup-127.0.0.1.6001",
         "intype": "tcp",
 	"inconf": {
 	      "url": "127.0.0.1:6001",
-	      "timeout": 10}
+	      "timeout": 3}
 	},
 	{
         "name": "tgroup-127.0.0.1.6002",
         "intype": "tcp",
 	"inconf": {
 	      "url": "127.0.0.1:6002",
-	      "timeout": 10}
+	      "timeout": 3}
 	}]
 }

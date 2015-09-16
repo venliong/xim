@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/liuhengloveyou/xim"
+
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
 )
@@ -31,7 +33,7 @@ func HttpAccess() {
 }
 
 func doOptions(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:63342")
+	w.Header().Set("Access-Control-Allow-Origin", "http://xim.com")
 	w.Header().Add("Access-Control-Allow-Methods", "POST")
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 	w.Header().Add("Access-Control-Allow-Headers", "X-API, X-REQUEST-ID, X-API-TRANSACTION, X-API-TRANSACTION-TIMEOUT, X-RANGE, Origin, X-Requested-With, Content-Type, Accept")
@@ -112,11 +114,36 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func recvMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusNotImplemented, "只支持POST请求.")
+		return
+	}
+
+	api := r.Header.Get("X-API")
+	if api == "" {
+		log.Errorln("X-API nil")
+		gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
+		return
+	}
+	log.Infoln("X-API:", api)
+
+	switch api {
+	case xim.API_TEMPGROUP:
+		if e := tgroup(r); e != nil {
+			log.Errorln("tgroup ERR:", e.Error())
+			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
+			return
+		}
+	default:
+		log.Errorln("X-API ERR:", api)
+		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
+	}
+
 	r.ParseForm()
-	userid, key := r.FormValue("userid"), r.FormValue("key")
-	if userid == "" || key == "" {
-		log.Errorln("recvMessage ERR:", userid, key)
-		gocommon.HttpErr(w, http.StatusBadRequest, "")
+	userid := r.FormValue("uid")
+	if userid == "" {
+		log.Errorln("recv userid nil.")
+		gocommon.HttpErr(w, http.StatusBadRequest, "末知的用户ID.")
 		return
 	}
 	log.Infoln("recv: ", userid)
@@ -132,4 +159,20 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	gocommon.HttpErr(w, http.StatusOK, <-user.(*User).ch)
 
 	return
+}
+
+////////
+func tgroup(r *http.Request) error {
+	r.ParseForm()
+	userid, groupid := r.FormValue("uid"), r.FormValue("gid")
+	if userid == "" || groupid == "" {
+		return fmt.Errorf("末知的用户或组.")
+	}
+	log.Infoln("tgroup: ", userid, groupid)
+
+	if e := TGUserLogin(userid, groupid); e != nil {
+		return e
+	}
+
+	return nil
 }

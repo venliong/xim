@@ -11,6 +11,6 @@
 },
 
 "nodeName":"access-1",
-"nodeConf":"../nodenet.conf",
+"nodeConf":"../nodenet.conf.sample",
 "passport":"http://127.0.0.1:8080"
 }

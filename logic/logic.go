@@ -12,23 +12,16 @@ import (
 	"syscall"
 	"time"
 
+	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/client"
-
-	gocommon "github.com/liuhengloveyou/go-common"
-)
-
-// 业务类型, 对应nodenet的组
-const (
-	LOGIC_TEMPORARY = "tgroup" // 临时讨论组
+	"github.com/liuhengloveyou/passport/session"
 )
 
 type Config struct {
-	Addr      string   `json:"addr"`
-	Port      int      `json:"port"`
-	NodeNames []string `json:"nodeNames"`
-	NodeConf  string   `json:"nodeConf"`
-	Passport  string   `json:"passport"`
+	NodeNames []string    `json:"nodeNames"`
+	NodeConf  string      `json:"nodeConf"`
+	Session   interface{} `json:"session"`
 }
 
 var (
@@ -39,8 +32,7 @@ var (
 )
 
 var (
-	confile = flag.String("c", "", "配置文件路径.")
-	proto   = flag.String("p", "http", "接入网络协议.")
+	confile = flag.String("c", "./logic.conf.simple", "配置文件路径.")
 )
 
 func init() {
@@ -84,6 +76,8 @@ func main() {
 	if e := initNodenet(Conf.NodeConf); e != nil {
 		panic(e)
 	}
+
+	session.InitDefaultSessionManager(Conf.Session)
 
 	sigHandler()
 

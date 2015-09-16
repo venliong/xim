@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/client"
@@ -20,10 +19,6 @@ import (
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
-)
-
-const (
-	HEARTBEAT = time.Duration(3) * time.Second
 )
 
 type Config struct {

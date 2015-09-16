@@ -29,7 +29,7 @@ func TcpAccess() {
 			for {
 				data := make([]byte, 4096)
 
-				conn.SetReadDeadline(time.Now().Add(time.Duration(HEARTBEAT * 3)))
+				conn.SetReadDeadline(time.Now().Add(time.Duration(3)))
 				i, err := conn.Read(data)
 				if err != nil {
 					log.Errorln("read from client ERR:", err.Error())

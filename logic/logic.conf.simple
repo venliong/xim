@@ -1,8 +1,9 @@
 {
-"addr": "",
-"port": 7070,
+"session": {
+	"store_type":    "mem",	
+	"idle_time":     3600,
+	"store_config":  ""},
 
 "nodeNames":["tgroup-127.0.0.1.6001"],
-"nodeConf":"../nodenet.conf",
-"passport":"http://127.0.0.1:8080"
+"nodeConf":"../nodenet.conf.sample"
 }
