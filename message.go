@@ -7,7 +7,7 @@ import (
 
 // 消息类型
 const (
-	MSG_SENDMSG = iota // 发消息
+	MSG_PUSHMSG = iota // 推送消息
 
 	// 临时讨论组
 	MSG_TG_LOGIN = iota // 临时讨论组登录
@@ -18,10 +18,10 @@ type Message struct {
 	Content interface{} `json:"content"`
 }
 
-type Message_SendMsg struct {
-	FromUser string `json:"from"`
-	ToUser   string `json:"to"`
-	Msg      string `json:"msg"`
+type Message_PushMsg struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+	Msg  string `json:"msg"`
 }
 
 type Message_TGLogin struct {

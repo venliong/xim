@@ -19,6 +19,11 @@ func HttpAccess() {
 	http.HandleFunc("/recv", recvMessage)
 	http.HandleFunc("/send", sendMessage)
 
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("welcome you!"))
+		log.Infoln(">>>", r.RequestURI)
+	})
+
 	s := &http.Server{
 		Addr:           fmt.Sprintf("%v:%v", Conf.Addr, Conf.Port),
 		ReadTimeout:    10 * time.Minute,
@@ -33,7 +38,7 @@ func HttpAccess() {
 }
 
 func doOptions(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://xim.com")
+	w.Header().Set("Access-Control-Allow-Origin", "http://xim.ort")
 	w.Header().Add("Access-Control-Allow-Methods", "POST")
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 	w.Header().Add("Access-Control-Allow-Headers", "X-API, X-REQUEST-ID, X-API-TRANSACTION, X-API-TRANSACTION-TIMEOUT, X-RANGE, Origin, X-Requested-With, Content-Type, Accept")
@@ -44,16 +49,16 @@ func doOptions(w http.ResponseWriter, r *http.Request) {
 
 func friendHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.Method + " " + r.RequestURI)
+	doOptions(w, r)
 	if r.Method == "OPTIONS" {
-		doOptions(w, r)
 		return
 	}
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.Method + " " + r.RequestURI)
+	doOptions(w, r)
 	if r.Method == "OPTIONS" {
-		doOptions(w, r)
 		return
 	}
 	if r.Method != "POST" {
@@ -83,13 +88,21 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	doOptions(w, r)
 	gocommon.HttpErr(w, stat, string(response))
 
 	return
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {
+	doOptions(w, r)
+	if r.Method == "OPTIONS" {
+		return
+	}
+	if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusNotImplemented, "只支持POST请求.")
+		return
+	}
+
 	api := r.Header.Get("X-API")
 	if api == "" {
 		log.Errorln("X-API nil")
@@ -114,8 +127,8 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func recvMessage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		gocommon.HttpErr(w, http.StatusNotImplemented, "只支持POST请求.")
+	doOptions(w, r)
+	if r.Method == "OPTIONS" {
 		return
 	}
 
@@ -129,9 +142,9 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 
 	switch api {
 	case xim.API_TEMPGROUP:
-		if e := tgroup(r); e != nil {
+		if _, e := tgroup(r); e != nil {
 			log.Errorln("tgroup ERR:", e.Error())
-			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
+			gocommon.HttpErr(w, http.StatusBadRequest, "临时讨论组系统错误.")
 			return
 		}
 	default:
@@ -162,17 +175,17 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 ////////
-func tgroup(r *http.Request) error {
+func tgroup(r *http.Request) (int, error) {
 	r.ParseForm()
 	userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 	if userid == "" || groupid == "" {
-		return fmt.Errorf("末知的用户或组.")
+		return http.StatusBadRequest, fmt.Errorf("末知的用户或组.")
 	}
 	log.Infoln("tgroup: ", userid, groupid)
 
 	if e := TGUserLogin(userid, groupid); e != nil {
-		return e
+		return http.StatusInternalServerError, e
 	}
 
-	return nil
+	return http.StatusOK, nil
 }

@@ -33,11 +33,24 @@ func tempGroupWorker(data interface{}) (result interface{}, err error) {
 		}
 		log.Infoln("tempGroupLogin OK:", msg.Content)
 		return nil, err
+	case xim.MSG_PUSHMSG:
+		err = tempGroupMessage(msg.Content)
+		if err != nil {
+			log.Errorln("tempGroupLogin ERR:", err.Error())
+		}
+		log.Infoln("tempGroupMessage OK:", msg.Content)
+		return data, err
 	default:
 		return nil, fmt.Errorf("末知的消息类型: [%v]", msg.MsgType)
 	}
 
 	return nil, nil
+}
+
+func tempGroupMessage(data interface{}) error {
+	fmt.Println(data)
+
+	return nil
 }
 
 func tempGroupLogin(data interface{}) error {

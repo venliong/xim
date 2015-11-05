@@ -56,3 +56,11 @@ func TestUserAuth(t *testing.T) {
 	t.Log(err)
 
 }
+
+func TestTGroup(t *testing.T) {
+	statuCode, responseCookies, responseBody, err := gocommon.PostRest(url+"/recv?uid=1234&gid=g123", nil, nil, &map[string]string{"X-API": "tgroup"})
+	t.Log(statuCode)
+	t.Log(responseCookies)
+	t.Log(string(responseBody))
+	t.Log(err)
+}

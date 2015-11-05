@@ -1,6 +1,6 @@
 {
 "addr": "",
-"port": 6060,
+"port": 6000,
 "session":{
 	"cookie_name":   "passportsessionid",
 	"idle_time":     259200,

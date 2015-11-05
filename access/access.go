@@ -69,15 +69,15 @@ func accessWork(msg interface{}) (result interface{}, err error) {
 	b, _ := json.Marshal((msg.(map[string]interface{}))["content"])
 
 	log.Infoln(string(b))
-	var sm xim.Message_SendMsg
+	var sm xim.Message_PushMsg
 
 	json.Unmarshal(b, &sm)
 	log.Infoln("sm:", sm)
 
-	sess, _ := users.GetSessionById(sm.ToUser)
+	sess, _ := users.GetSessionById(sm.To)
 	user := sess.Get("info")
 	if user == nil {
-		log.Errorln("No such user: ", sm.ToUser)
+		log.Errorln("No such user: ", sm.To)
 		return nil, nil
 	}
 
@@ -87,7 +87,7 @@ func accessWork(msg interface{}) (result interface{}, err error) {
 }
 
 func SendMsgToUser(fromuserid, touserid, message string) error {
-	iMsg := xim.Message{xim.MSG_SENDMSG, xim.Message_SendMsg{fromuserid, touserid, message}}
+	iMsg := xim.Message{xim.MSG_PUSHMSG, xim.Message_PushMsg{fromuserid, touserid, message}}
 	fmt.Println("iMsg: ", iMsg)
 
 	g := nodenet.GetGraphByName("send")
