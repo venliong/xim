@@ -39,9 +39,8 @@ var (
 )
 
 type User struct {
-	ID  string
-	ch  chan string
-	act int64
+	ID string
+	ch chan string
 }
 
 var (
@@ -63,31 +62,8 @@ func initNodenet(fn string) error {
 	return nil
 }
 
-func accessWork(msg interface{}) (result interface{}, err error) {
-	log.Infoln(Conf.NodeName, "msg: ", msg)
-
-	b, _ := json.Marshal((msg.(map[string]interface{}))["content"])
-
-	log.Infoln(string(b))
-	var sm xim.Message_PushMsg
-
-	json.Unmarshal(b, &sm)
-	log.Infoln("sm:", sm)
-
-	sess, _ := users.GetSessionById(sm.To)
-	user := sess.Get("info")
-	if user == nil {
-		log.Errorln("No such user: ", sm.To)
-		return nil, nil
-	}
-
-	user.(*User).ch <- sm.Msg
-
-	return nil, nil
-}
-
 func SendMsgToUser(fromuserid, touserid, message string) error {
-	iMsg := xim.Message{xim.MSG_PUSHMSG, xim.Message_PushMsg{fromuserid, touserid, message}}
+	iMsg := xim.Message{xim.LogicPushMessage, xim.Message_PushMsg{From: fromuserid, To: touserid, Content: message}}
 	fmt.Println("iMsg: ", iMsg)
 
 	g := nodenet.GetGraphByName("send")
@@ -135,4 +111,40 @@ func main() {
 	default:
 		panic("Error proto: " + *proto)
 	}
+}
+
+func accessWork(msg interface{}) (result interface{}, err error) {
+	imsg := &xim.Message{}
+	b, _ := json.Marshal(msg)
+
+	if err = json.Unmarshal(b, imsg); err != nil {
+		log.Errorln("accessWork ERR:", err)
+		return nil, nil
+	}
+	log.Infoln("imsg:", imsg)
+
+	switch imsg.LogicType {
+	case xim.LogicPushMessage:
+		processPushMessage(&xim.Message_PushMsg{
+			From:    (imsg.Content.(map[string]interface{}))["from"].(string),
+			To:      (imsg.Content.(map[string]interface{}))["to"].(string),
+			Group:   (imsg.Content.(map[string]interface{}))["group"].(string),
+			Content: (imsg.Content.(map[string]interface{}))["ctx"].(string)})
+	default:
+		log.Errorln("ERRMSG:", string(b))
+	}
+
+	return nil, nil
+}
+
+func processPushMessage(msg *xim.Message_PushMsg) {
+	sess, _ := users.GetSessionById(&msg.To)
+	user := sess.Get("info")
+	if user == nil {
+		log.Errorln("No such session: ", msg.To)
+		return
+	}
+	log.Infoln("processPushMessage:", user)
+
+	user.(*User).ch <- msg.Content
 }

@@ -21,7 +21,7 @@ func HttpAccess() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome you!"))
-		log.Infoln(">>>", r.RequestURI)
+		log.Infoln("RequestURI:", r.RequestURI)
 	})
 
 	s := &http.Server{
@@ -38,7 +38,7 @@ func HttpAccess() {
 }
 
 func doOptions(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://xim.ort")
+	w.Header().Set("Access-Control-Allow-Origin", "*.*")
 	w.Header().Add("Access-Control-Allow-Methods", "POST")
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 	w.Header().Add("Access-Control-Allow-Headers", "X-API, X-REQUEST-ID, X-API-TRANSACTION, X-API-TRANSACTION-TIMEOUT, X-RANGE, Origin, X-Requested-With, Content-Type, Accept")
@@ -109,24 +109,31 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
 		return
 	}
-	log.Infoln("X-API:", api)
+	log.Infoln("sendMessage X-API:", api)
 
-	r.ParseForm()
-	userid, msg := r.FormValue("userid"), r.FormValue("msg")
-	if userid == "" || msg == "" {
-		log.Errorf("param ERR:[%s],[%s].", userid, msg)
-		gocommon.HttpErr(w, http.StatusBadRequest, "请求参数错误.")
-		return
+	switch api {
+	case xim.API_TEMPGROUP:
+		if _, e := tgroup(r, "send"); e != nil {
+			log.Errorln("sendMessage tgroup ERR:", e.Error())
+			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
+			return
+		}
+	default:
+		log.Errorln("X-API ERR:", api)
+		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
 	}
-	log.Infoln(api, userid, msg)
 
-	//SendMsgToUser(from, to, msg)
 	gocommon.HttpErr(w, http.StatusOK, "OK")
 
 	return
 }
 
 func recvMessage(w http.ResponseWriter, r *http.Request) {
+	var (
+		user *User
+		e    error
+	)
+
 	doOptions(w, r)
 	if r.Method == "OPTIONS" {
 		return
@@ -138,54 +145,74 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
 		return
 	}
-	log.Infoln("X-API:", api)
+	log.Infoln("recvMessage X-API:", api)
 
+	r.ParseForm()
 	switch api {
 	case xim.API_TEMPGROUP:
-		if _, e := tgroup(r); e != nil {
+		if user, e = tgroup(r, "recv"); e != nil {
 			log.Errorln("tgroup ERR:", e.Error())
-			gocommon.HttpErr(w, http.StatusBadRequest, "临时讨论组系统错误.")
+			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
 			return
 		}
 	default:
 		log.Errorln("X-API ERR:", api)
 		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
 	}
-
-	r.ParseForm()
-	userid := r.FormValue("uid")
-	if userid == "" {
-		log.Errorln("recv userid nil.")
-		gocommon.HttpErr(w, http.StatusBadRequest, "末知的用户ID.")
+	if user == nil {
+		log.Errorln("user nil:", api)
+		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
 		return
 	}
-	log.Infoln("recv: ", userid)
-
-	sess, _ := users.GetSessionById(userid)
-	user := sess.Get("info")
-	if user == nil {
-		user = &User{ID: userid, ch: make(chan string), act: time.Now().Unix()}
-		sess.Set("info", user)
-		log.Infoln("login:", userid)
+	if user.ID == "" {
+		log.Errorln("user's ID nil:", api)
+		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
+		return
 	}
 
-	gocommon.HttpErr(w, http.StatusOK, <-user.(*User).ch)
+	sess, _ := users.GetSession(w, r, &user.ID)
+	sess.Set("info", user)
+	log.Infoln("userlogin:", api, *user)
+
+	gocommon.HttpErr(w, http.StatusOK, <-user.ch)
 
 	return
 }
 
-////////
-func tgroup(r *http.Request) (int, error) {
-	r.ParseForm()
-	userid, groupid := r.FormValue("uid"), r.FormValue("gid")
-	if userid == "" || groupid == "" {
-		return http.StatusBadRequest, fmt.Errorf("末知的用户或组.")
-	}
-	log.Infoln("tgroup: ", userid, groupid)
+func tgroup(r *http.Request, logic string) (user *User, e error) {
+	if "recv" == logic {
+		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
+		if userid == "" || groupid == "" {
+			return nil, fmt.Errorf("末知的用户或组.")
+		}
+		log.Infoln("tgroup: ", userid, groupid)
 
-	if e := TGUserLogin(userid, groupid); e != nil {
-		return http.StatusInternalServerError, e
+		if e := TGroutRecv(userid, groupid); e != nil {
+			return nil, e
+		}
+
+		log.Infoln("tgroup loginok: ", userid, groupid)
+
+		return &User{ID: fmt.Sprintf("%s.%s", groupid, userid), ch: make(chan string)}, nil
+	} else if "send" == logic {
+		r.ParseForm()
+
+		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
+		if userid == "" || groupid == "" {
+			return nil, fmt.Errorf("末知的用户或组.")
+		}
+		bm, e := ioutil.ReadAll(r.Body)
+		if e != nil {
+			return nil, e
+		}
+		log.Infoln("tgroup: ", userid, groupid, string(bm))
+
+		if e = TGroutSend(userid, groupid, string(bm)); e != nil {
+			return nil, e
+		}
+
+		log.Infoln("tgroup loginok: ", userid, groupid, string(bm))
 	}
 
-	return http.StatusOK, nil
+	return nil, nil
 }
