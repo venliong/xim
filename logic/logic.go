@@ -25,9 +25,10 @@ type Config struct {
 }
 
 var (
-	Conf     Config                        // 系统配置信息
+	Sig  string
+	Conf Config // 系统配置信息
+
 	nodes    map[string]*nodenet.Component //每个进程可以运行多个woker
-	Sig      string
 	passport *client.Passport
 )
 

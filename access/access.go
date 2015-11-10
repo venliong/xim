@@ -31,10 +31,12 @@ type Config struct {
 }
 
 var (
-	Conf     Config // 系统配置信息
+	Sig  string
+	Conf Config // 系统配置信息
+	GID  *gocommon.GlobalID
+
 	users    *session.SessionManager
 	mynode   *nodenet.Component
-	Sig      string
 	passport *client.Passport
 )
 
@@ -67,7 +69,7 @@ func SendMsgToUser(fromuserid, touserid, message string) error {
 	fmt.Println("iMsg: ", iMsg)
 
 	g := nodenet.GetGraphByName("send")
-	cMsg, _ := nodenet.NewMessage(Conf.NodeName, g, iMsg)
+	cMsg, _ := nodenet.NewMessage(GID.ID(), Conf.NodeName, g, iMsg)
 	fmt.Println("cMsg: ", cMsg)
 
 	err := nodenet.SendMsgToNext(cMsg)
@@ -99,7 +101,11 @@ func main() {
 	}
 
 	users = session.NewSessionManager(Conf.Session)
+	users.SetPrepireRelease(AccessPrepireRelease)
+
 	passport = &client.Passport{ServAddr: Conf.Passport}
+
+	GID = &gocommon.GlobalID{Type: Conf.NodeName}
 
 	sigHandler()
 
@@ -110,6 +116,16 @@ func main() {
 		HttpAccess()
 	default:
 		panic("Error proto: " + *proto)
+	}
+}
+
+func AccessPrepireRelease(ss session.SessionStore) {
+	if ss != nil {
+		info := ss.Get("info")
+		if info != nil {
+			info.(*User).ch <- "TIMEOUT"
+
+		}
 	}
 }
 

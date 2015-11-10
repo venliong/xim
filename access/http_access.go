@@ -13,11 +13,13 @@ import (
 )
 
 func HttpAccess() {
+	http.HandleFunc("/recv", recvMessage)
+	http.HandleFunc("/send", sendMessage)
+
 	http.HandleFunc("/user/", userHandler)
 	http.HandleFunc("/friend/", friendHandler)
 
-	http.HandleFunc("/recv", recvMessage)
-	http.HandleFunc("/send", sendMessage)
+	http.Handle("/client/", http.StripPrefix("/client/", http.FileServer(http.Dir("/Users/liuheng/go/src/github.com/liuhengloveyou/xim-ionic/"))))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome you!"))
@@ -151,7 +153,6 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	switch api {
 	case xim.API_TEMPGROUP:
 		if user, e = tgroup(r, "recv"); e != nil {
-			log.Errorln("tgroup ERR:", e.Error())
 			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
 			return
 		}
@@ -160,21 +161,24 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
 	}
 	if user == nil {
-		log.Errorln("user nil:", api)
 		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
 		return
 	}
 	if user.ID == "" {
-		log.Errorln("user's ID nil:", api)
 		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
 		return
 	}
 
-	sess, _ := users.GetSession(w, r, &user.ID)
-	sess.Set("info", user)
-	log.Infoln("userlogin:", api, *user)
+	ctx := ""
+	select {
+	case ctx = <-user.ch:
+	case <-w.(http.CloseNotifier).CloseNotify():
+		log.Warningln("client closed:", api, *user)
+		return
+	}
 
-	gocommon.HttpErr(w, http.StatusOK, <-user.ch)
+	log.Infoln("recvOK:", ctx)
+	gocommon.HttpErr(w, http.StatusOK, ctx)
 
 	return
 }
@@ -187,13 +191,11 @@ func tgroup(r *http.Request, logic string) (user *User, e error) {
 		}
 		log.Infoln("tgroup: ", userid, groupid)
 
-		if e := TGroutRecv(userid, groupid); e != nil {
+		if user, e = TGroutRecv(userid, groupid); e != nil {
 			return nil, e
 		}
 
-		log.Infoln("tgroup loginok: ", userid, groupid)
-
-		return &User{ID: fmt.Sprintf("%s.%s", groupid, userid), ch: make(chan string)}, nil
+		return user, nil
 	} else if "send" == logic {
 		r.ParseForm()
 
@@ -210,8 +212,6 @@ func tgroup(r *http.Request, logic string) (user *User, e error) {
 		if e = TGroutSend(userid, groupid, string(bm)); e != nil {
 			return nil, e
 		}
-
-		log.Infoln("tgroup loginok: ", userid, groupid, string(bm))
 	}
 
 	return nil, nil

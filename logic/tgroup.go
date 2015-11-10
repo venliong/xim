@@ -64,12 +64,12 @@ func tempGroupSend(data interface{}) error {
 	log.Infoln("tempGroupSend:", msg.To, keys)
 	for i := 0; i < len(keys); i++ {
 		stat := sess.Get(keys[i])
-		if stat == nil {
-			log.Errorln("stat nil:", keys[i])
+		if stat == nil || msg.From == keys[i] {
+			log.Errorln("skip:", keys[i], stat)
 			continue
 		}
 
-		cMsg, _ := nodenet.NewMessage("", nil, xim.Message{xim.LogicPushMessage, &xim.Message_PushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content}})
+		cMsg, _ := nodenet.NewMessage("", "", nil, xim.Message{xim.LogicPushMessage, &xim.Message_PushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content}})
 		log.Infoln("tgroup pushmsg: ", cMsg)
 		nodenet.SendMsgToComponent(stat.(string), cMsg)
 	}

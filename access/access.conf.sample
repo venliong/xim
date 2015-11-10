@@ -1,10 +1,10 @@
 {
 "addr": "",
-"port": 6000,
+"port": 9000,
 "session":{
 	"cookie_name":   "passportsessionid",
-	"idle_time":     259200,
-	"cookie_expire": 259200,
+	"idle_time":     180,
+	"cookie_expire": 180,
 	"domain":        "domain",
 	"store_type":    "mem",	
 	"store_config":  ""
