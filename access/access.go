@@ -124,7 +124,7 @@ func AccessPrepireRelease(ss session.SessionStore) {
 		info := ss.Get("info")
 		if info != nil {
 			info.(*User).ch <- "TIMEOUT"
-
+			close(info.(*User).ch)
 		}
 	}
 }
