@@ -1,13 +1,4 @@
 {
-"graphs": {
-	"tgroup":["tgroup"]
-},
-"groups":[
-	{
-	"name": "tgroup",
-	"dispense":"hash",
-	"members":["tgroup-127.0.0.1.6001", "tgroup-127.0.0.1.6001"]
-	}],
 "components":[
 	{
         "name": "access-1",
@@ -29,5 +20,16 @@
 	"inconf": {
 	      "url": "127.0.0.1:6002",
 	      "timeout": 3}
-	}]
+	}],
+	
+"groups":[
+	{
+	"name": "tgroup",
+	"dispense":"hash",
+	"members":["tgroup-127.0.0.1.6001", "tgroup-127.0.0.1.6001"]
+	}],
+
+"graphs": {
+	"tgroup":["tgroup"]
+}
 }

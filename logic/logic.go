@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"reflect"
 	"syscall"
 	"time"
 
@@ -19,16 +20,19 @@ import (
 )
 
 type Config struct {
-	NodeNames []string    `json:"nodeNames"`
-	NodeConf  string      `json:"nodeConf"`
-	Session   interface{} `json:"session"`
+	Nodes []struct {
+		Name  string            `json:"name"`
+		Works map[string]string `json:"works"`
+	} `json:"nodes"`
+	Session  interface{} `json:"session"`
+	NodeConf string      `json:"nodeConf"`
 }
 
 var (
 	Sig  string
 	Conf Config // 系统配置信息
 
-	nodes    map[string]*nodenet.Component //每个进程可以运行多个woker
+	mynodes  map[string]*nodenet.Component
 	passport *client.Passport
 )
 
@@ -37,7 +41,7 @@ var (
 )
 
 func init() {
-	nodes = make(map[string]*nodenet.Component)
+	mynodes = make(map[string]*nodenet.Component)
 }
 
 func initNodenet(fn string) error {
@@ -45,12 +49,28 @@ func initNodenet(fn string) error {
 		return e
 	}
 
-	for _, name := range Conf.NodeNames {
-		nodes[name] = nodenet.GetComponentByName(name)
-		if nodes[name] != nil {
-			nodes[name].SetHandler(nodenet.GetWorkerByName(name))
-			go nodes[name].Run()
+	for i := 0; i < len(Conf.Nodes); i++ {
+		name := Conf.Nodes[i].Name
+		mynodes[name] = nodenet.GetComponentByName(name)
+		if mynodes[name] == nil {
+			return fmt.Errorf("No node: ", name)
 		}
+
+		for k, v := range Conf.Nodes[i].Works {
+			t, w := nodenet.GetMessageTypeByName(k), nodenet.GetWorkerByName(v)
+			if t == nil {
+				return fmt.Errorf("No message registerd: %s", k)
+			}
+			if w == nil {
+				return fmt.Errorf("No worker registerd: %s", v)
+			}
+			if reflect.TypeOf(t) != w.Message {
+				return fmt.Errorf("worker can't recive message: %v %v", w, k)
+			}
+			mynodes[name].RegisterHandler(t, w.Handler)
+		}
+
+		go mynodes[name].Run()
 	}
 
 	return nil

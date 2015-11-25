@@ -1,6 +1,7 @@
 {
 "addr": "",
 "port": 9000,
+"passport":"http://127.0.0.1:8080",
 "session":{
 	"cookie_name":   "passportsessionid",
 	"idle_time":     180,
@@ -11,6 +12,5 @@
 },
 
 "nodeName":"access-1",
-"nodeConf":"../nodenet.conf.sample",
-"passport":"http://127.0.0.1:8080"
+"nodeConf":"../nodenet.conf.sample"
 }

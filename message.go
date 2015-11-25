@@ -1,23 +1,22 @@
 package xim
 
 import (
-//"encoding/json"
-
+	"github.com/liuhengloveyou/nodenet"
 )
 
-type Message struct {
-	LogicType int         `json:"type"`
-	Content   interface{} `json:"content"`
+func init() {
+	nodenet.RegisterMessageType(MessagePushMsg{})
+	nodenet.RegisterMessageType(MessageTGLogin{})
 }
 
-type Message_PushMsg struct {
+type MessagePushMsg struct {
 	From    string `json:"from"`
 	To      string `json:"to"`
 	Group   string `json:"group,omitempty"`
 	Content string `json:"ctx"`
 }
 
-type Message_TGLogin struct {
+type MessageTGLogin struct {
 	Gid    string `json:"gid"`
 	Uid    string `json:"uid"`
 	Access string `json:"access"`

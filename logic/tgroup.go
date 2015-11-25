@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/liuhengloveyou/nodenet"
@@ -12,52 +11,35 @@ import (
 )
 
 func init() {
-	nodenet.SetWorker(xim.API_TEMPGROUP, tempGroupWorker)
+	nodenet.RegisterWorker("tempGroupLogin", xim.MessageTGLogin{}, TempGroupLogin)
+	nodenet.RegisterWorker("tempGroupSend", xim.MessagePushMsg{}, TempGroupSend)
 }
 
-func tempGroupWorker(data interface{}) (result interface{}, err error) {
-	b, e := json.Marshal(data)
-	if e != nil {
-		return nil, e
+func TempGroupLogin(data interface{}) (result interface{}, err error) {
+	var msg = data.(xim.MessageTGLogin)
+	log.Infoln("tgroupLogin:", msg)
+
+	sess, err := session.GetSessionById(&msg.Gid)
+	if err != nil {
+		return nil, err
 	}
 
-	var msg xim.Message
-	if e := json.Unmarshal(b, &msg); e != nil {
-		return nil, e
+	if err := sess.Set(msg.Uid, msg.Access); err != nil {
+		return nil, err
 	}
 
-	switch msg.LogicType {
-	case xim.LogicTGRecv:
-		err = tempGroupLogin(msg.Content)
-		if err != nil {
-			log.Errorln("tempGroupLogin ERR:", err.Error())
-		}
-	case xim.LogicTGSend:
-		err = tempGroupSend(msg.Content)
-		if err != nil {
-			log.Errorln("tempGroupLogin ERR:", err.Error())
-		}
-	default:
-		log.Errorf("末知的业务类型: [%v]", msg.LogicType)
-	}
+	log.Infoln("tgroupLogin OK:", sess)
 
 	return nil, nil
 }
 
-func tempGroupSend(data interface{}) error {
-	msg := &xim.Message_PushMsg{}
-	b, e := json.Marshal(data)
-	if e != nil {
-		return e
-	}
-	if e := json.Unmarshal(b, msg); e != nil {
-		return e
-	}
-	log.Infoln("tgroupsend:", msg)
+func TempGroupSend(data interface{}) (result interface{}, err error) {
+	var msg = data.(xim.MessagePushMsg)
+	log.Infoln(msg)
 
 	sess, err := session.GetSessionById(&msg.To)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	keys := sess.Keys()
@@ -69,35 +51,11 @@ func tempGroupSend(data interface{}) error {
 			continue
 		}
 
-		cMsg, _ := nodenet.NewMessage("", "", nil, xim.Message{xim.LogicPushMessage, &xim.Message_PushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content}})
-		log.Infoln("tgroup pushmsg: ", cMsg)
+		cMsg := nodenet.NewMessage("", "", nil,
+			xim.MessagePushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content})
+		log.Infoln("tgroup pushmsg: ", stat.(string), cMsg)
 		nodenet.SendMsgToComponent(stat.(string), cMsg)
 	}
 
-	return nil
-}
-
-func tempGroupLogin(data interface{}) error {
-	var msg xim.Message_TGLogin
-	b, e := json.Marshal(data)
-	if e != nil {
-		return e
-	}
-	if e := json.Unmarshal(b, &msg); e != nil {
-		return e
-	}
-	log.Infoln("tgroupLogin:", msg)
-
-	sess, err := session.GetSessionById(&msg.Gid)
-	if err != nil {
-		return err
-	}
-
-	if err := sess.Set(msg.Uid, msg.Access); err != nil {
-		return err
-	}
-
-	log.Infoln("tgroupLogin OK:", sess)
-
-	return nil
+	return nil, nil
 }

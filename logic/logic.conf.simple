@@ -4,6 +4,14 @@
 	"idle_time":     86400,
 	"store_config":  ""},
 
-"nodeNames":["tgroup-127.0.0.1.6001"],
+"nodes":[
+	{
+	"name":"tgroup-127.0.0.1.6001",
+	"works":{
+		"xim.MessageTGLogin":"tempGroupLogin",
+		"xim.MessagePushMsg":"tempGroupSend"}
+	}
+	],
+	
 "nodeConf":"../nodenet.conf.sample"
 }

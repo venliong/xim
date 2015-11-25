@@ -172,6 +172,8 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	ctx := ""
 	select {
 	case ctx = <-user.ch:
+	case <-time.After(1 * time.Minute):
+		ctx = "TIMEOUT"
 	case <-w.(http.CloseNotifier).CloseNotify():
 		log.Warningln("client closed:", api, *user)
 		return

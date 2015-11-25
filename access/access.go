@@ -56,26 +56,21 @@ func initNodenet(fn string) error {
 	}
 
 	mynode = nodenet.GetComponentByName(Conf.NodeName)
-	if mynode != nil {
-		mynode.SetHandler(accessWork)
-		go mynode.Run()
+	if mynode == nil {
+		return fmt.Errorf("No node: ", Conf.NodeName)
 	}
+
+	mynode.RegisterHandler(xim.MessagePushMsg{}, dealPushMsg)
+	go mynode.Run()
 
 	return nil
 }
 
 func SendMsgToUser(fromuserid, touserid, message string) error {
-	iMsg := xim.Message{xim.LogicPushMessage, xim.Message_PushMsg{From: fromuserid, To: touserid, Content: message}}
-	fmt.Println("iMsg: ", iMsg)
+	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName("send"), xim.MessagePushMsg{From: fromuserid, To: touserid, Content: message})
+	log.Infoln(cMsg)
 
-	g := nodenet.GetGraphByName("send")
-	cMsg, _ := nodenet.NewMessage(GID.ID(), Conf.NodeName, g, iMsg)
-	fmt.Println("cMsg: ", cMsg)
-
-	err := nodenet.SendMsgToNext(cMsg)
-	fmt.Println(err)
-
-	return nil
+	return nodenet.SendMsgToNext(cMsg)
 }
 
 func sigHandler() {
@@ -123,44 +118,28 @@ func AccessPrepireRelease(ss session.SessionStore) {
 	if ss != nil {
 		info := ss.Get("info")
 		if info != nil {
-			info.(*User).ch <- "TIMEOUT"
+			select {
+			case info.(*User).ch <- "TIMEOUT":
+			default:
+			}
 			close(info.(*User).ch)
 		}
 	}
 }
 
-func accessWork(msg interface{}) (result interface{}, err error) {
-	imsg := &xim.Message{}
-	b, _ := json.Marshal(msg)
+func dealPushMsg(data interface{}) (result interface{}, err error) {
+	msg := data.(xim.MessagePushMsg)
 
-	if err = json.Unmarshal(b, imsg); err != nil {
-		log.Errorln("accessWork ERR:", err)
-		return nil, nil
-	}
-	log.Infoln("imsg:", imsg)
-
-	switch imsg.LogicType {
-	case xim.LogicPushMessage:
-		processPushMessage(&xim.Message_PushMsg{
-			From:    (imsg.Content.(map[string]interface{}))["from"].(string),
-			To:      (imsg.Content.(map[string]interface{}))["to"].(string),
-			Group:   (imsg.Content.(map[string]interface{}))["group"].(string),
-			Content: (imsg.Content.(map[string]interface{}))["ctx"].(string)})
-	default:
-		log.Errorln("ERRMSG:", string(b))
-	}
-
-	return nil, nil
-}
-
-func processPushMessage(msg *xim.Message_PushMsg) {
 	sess, _ := users.GetSessionById(&msg.To)
 	user := sess.Get("info")
 	if user == nil {
 		log.Errorln("No such session: ", msg.To)
 		return
 	}
-	log.Infoln("processPushMessage:", user)
+	log.Infoln("processPushMessage:", user, msg)
 
-	user.(*User).ch <- msg.Content
+	bytemsg, _ := json.Marshal(msg)
+	user.(*User).ch <- string(bytemsg)
+
+	return nil, nil
 }
