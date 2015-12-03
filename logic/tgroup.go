@@ -47,14 +47,16 @@ func TempGroupSend(data interface{}) (result interface{}, err error) {
 	for i := 0; i < len(keys); i++ {
 		stat := sess.Get(keys[i])
 		if stat == nil || msg.From == keys[i] {
-			log.Errorln("skip:", keys[i], stat)
+			log.Errorln("tgroup skip:", keys[i], stat)
 			continue
 		}
 
-		cMsg := nodenet.NewMessage("", "", nil,
-			xim.MessagePushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content})
+		cMsg := nodenet.NewMessage("", "", nil, xim.MessagePushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content})
 		log.Infoln("tgroup pushmsg: ", stat.(string), cMsg)
-		nodenet.SendMsgToComponent(stat.(string), cMsg)
+
+		if err = nodenet.SendMsgToComponent(stat.(string), cMsg); err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil

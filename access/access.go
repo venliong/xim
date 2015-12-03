@@ -40,11 +40,6 @@ var (
 	passport *client.Passport
 )
 
-type User struct {
-	ID string
-	ch chan string
-}
-
 var (
 	confile = flag.String("c", "access.conf.sample", "配置文件路径.")
 	proto   = flag.String("p", "http", "接入网络协议.")
@@ -116,13 +111,9 @@ func main() {
 
 func AccessPrepireRelease(ss session.SessionStore) {
 	if ss != nil {
-		info := ss.Get("info")
-		if info != nil {
-			select {
-			case info.(*User).ch <- "TIMEOUT":
-			default:
-			}
-			close(info.(*User).ch)
+		user := ss.Get("info")
+		if user != nil {
+			user.(*xim.User).Destroy()
 		}
 	}
 }
@@ -136,10 +127,11 @@ func dealPushMsg(data interface{}) (result interface{}, err error) {
 		log.Errorln("No such session: ", msg.To)
 		return
 	}
-	log.Infoln("processPushMessage:", user, msg)
 
 	bytemsg, _ := json.Marshal(msg)
-	user.(*User).ch <- string(bytemsg)
+	log.Infoln("processPushMessage:", user, string(bytemsg))
+
+	user.(*xim.User).PushMessage(string(bytemsg))
 
 	return nil, nil
 }

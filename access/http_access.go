@@ -132,7 +132,7 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 
 func recvMessage(w http.ResponseWriter, r *http.Request) {
 	var (
-		user *User
+		user *xim.User
 		e    error
 	)
 
@@ -169,23 +169,25 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := ""
-	select {
-	case ctx = <-user.ch:
-	case <-time.After(1 * time.Minute):
-		ctx = "TIMEOUT"
-	case <-w.(http.CloseNotifier).CloseNotify():
-		log.Warningln("client closed:", api, *user)
-		return
+	ctx := user.HistoryMessage()
+	if ctx == "" {
+		select {
+		case ctx = <-user.MsgChan:
+		case <-time.After(1 * time.Minute):
+			ctx = "TIMEOUT"
+		case <-w.(http.CloseNotifier).CloseNotify():
+			log.Warningln("client closed:", api, *user)
+			return
+		}
 	}
 
-	log.Infoln("recvOK:", ctx)
+	log.Infoln("recvover:", ctx)
 	gocommon.HttpErr(w, http.StatusOK, ctx)
 
 	return
 }
 
-func tgroup(r *http.Request, logic string) (user *User, e error) {
+func tgroup(r *http.Request, logic string) (user *xim.User, e error) {
 	if "recv" == logic {
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 		if userid == "" || groupid == "" {
