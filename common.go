@@ -3,6 +3,7 @@ package xim
 // 接口类型, 对应nodenet的组
 const (
 	API_TEMPGROUP = "tgroup" // 临时讨论组
+	API_CHAT      = "chat"   // 1对1聊天
 )
 
 // 业务类型

@@ -10,6 +10,7 @@ import (
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/passport/session"
 )
 
 func HttpAccess() {
@@ -17,9 +18,8 @@ func HttpAccess() {
 	http.HandleFunc("/send", sendMessage)
 
 	http.HandleFunc("/user/", userHandler)
-	http.HandleFunc("/friend/", friendHandler)
 
-	http.Handle("/client/", http.StripPrefix("/client/", http.FileServer(http.Dir("/Users/liuheng/go/src/github.com/liuhengloveyou/xim-ionic/"))))
+	//http.Handle("/client/", http.StripPrefix("/client/", http.FileServer(http.Dir("/Users/liuheng/go/src/github.com/liuhengloveyou/xim-ionic/"))))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome you!"))
@@ -39,32 +39,45 @@ func HttpAccess() {
 	}
 }
 
-func doOptions(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*.*")
-	w.Header().Add("Access-Control-Allow-Methods", "POST")
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
+func optionsFilter(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "http://web.xim.com:9000")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Add("Access-Control-Allow-Headers", "X-API, X-REQUEST-ID, X-API-TRANSACTION, X-API-TRANSACTION-TIMEOUT, X-RANGE, Origin, X-Requested-With, Content-Type, Accept")
 	w.Header().Add("P3P", `CP="CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR"`)
 
 	return
 }
 
-func friendHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Method + " " + r.RequestURI)
-	doOptions(w, r)
-	if r.Method == "OPTIONS" {
+func authFilter(w http.ResponseWriter, r *http.Request) {
+	// 有会话存在吗？
+	r.Cookie(Conf.Session.)
+	//本地有会话信息吗?
+	sess, err := session.GetSession(w, r, nil)
+	if err != nil {
+		gocommon.HttpErr(w, http.StatusInternalServerError, err.Error())
+		log.Errorln(err.Error())
+		return
+	}
+
+	tmp := sess.Get("user")
+	if tmp != nil {
+		// 去会话中心查询
+		http.DefaultClient.Do(req *http.Request)
+	}
+
+	if tmp == nil {
+		gocommon.HttpErr(w, http.StatusForbidden, "请登录")
 		return
 	}
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Method + " " + r.RequestURI)
-	doOptions(w, r)
+	optionsFilter(w, r)
 	if r.Method == "OPTIONS" {
 		return
-	}
-	if r.Method != "POST" {
-		gocommon.HttpErr(w, http.StatusNotImplemented, "只支持POST请求.")
+	} else if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusMethodNotAllowed, "只支持POST请求.")
 		return
 	}
 
@@ -96,12 +109,11 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {
-	doOptions(w, r)
+	optionsFilter(w, r)
 	if r.Method == "OPTIONS" {
 		return
-	}
-	if r.Method != "POST" {
-		gocommon.HttpErr(w, http.StatusNotImplemented, "只支持POST请求.")
+	} else if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusMethodNotAllowed, "只支持POST请求.")
 		return
 	}
 
@@ -131,15 +143,18 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func recvMessage(w http.ResponseWriter, r *http.Request) {
+	optionsFilter(w, r)
+	if r.Method == "OPTIONS" {
+		return
+	} else if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusMethodNotAllowed, "只支持POST请求.")
+		return
+	}
+
 	var (
 		user *xim.User
 		e    error
 	)
-
-	doOptions(w, r)
-	if r.Method == "OPTIONS" {
-		return
-	}
 
 	api := r.Header.Get("X-API")
 	if api == "" {
@@ -160,6 +175,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		log.Errorln("X-API ERR:", api)
 		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
 	}
+
 	if user == nil {
 		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
 		return
@@ -187,6 +203,12 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// 正常1对1聊天
+func chat(r *http.Request) (user *xim.User, e error) {
+
+}
+
+// 临时讨论组
 func tgroup(r *http.Request, logic string) (user *xim.User, e error) {
 	if "recv" == logic {
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")

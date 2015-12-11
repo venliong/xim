@@ -1,14 +1,13 @@
 {
 "addr": "",
-"port": 9000,
+"port": 10000,
 "passport":"http://127.0.0.1:8080",
 "session":{
-	"cookie_name":   "passportsessionid",
-	"idle_time":     180,
-	"cookie_expire": 180,
-	"domain":        "domain",
+	"domain":        "xim.com",
+	"cookie_name":   "ximsession",
 	"store_type":    "mem",	
-	"store_config":  ""
+	"idle_time":     180,
+	"cookie_expire": 180
 },
 
 "nodeName":"access-1",
