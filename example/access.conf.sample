@@ -11,5 +11,5 @@
 },
 
 "nodeName":"access-1",
-"nodeConf":"../nodenet.conf.sample"
+"nodeConf":"example/nodenet.conf.sample"
 }

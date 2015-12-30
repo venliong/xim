@@ -25,7 +25,8 @@ func main() {
 	case "access":
 		face.AccessMain()
 	default:
-		panic("Error service type: " + *service)
+		flag.Usage()
+		os.Exit(0)
 	}
 }
 

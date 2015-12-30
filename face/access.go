@@ -39,7 +39,7 @@ var (
 )
 
 var (
-	confile = flag.String("access_conf", "access.conf.sample", "接入服务配置文件路径.")
+	confile = flag.String("access_conf", "example/access.conf.sample", "接入服务配置文件路径.")
 	proto   = flag.String("access_proto", "http", "接入服务网络协议.")
 )
 

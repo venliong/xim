@@ -12,12 +12,12 @@ import (
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
-func HttpAccess() {
+func init() {
 	http.HandleFunc("/recv", recvMessage)
 	http.HandleFunc("/send", sendMessage)
+}
 
-	http.HandleFunc("/user/", userHandler)
-
+func HttpAccess() {
 	//http.Handle("/client/", http.StripPrefix("/client/", http.FileServer(http.Dir("/Users/liuheng/go/src/github.com/liuhengloveyou/xim-ionic/"))))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -50,39 +50,6 @@ func optionsFilter(w http.ResponseWriter, r *http.Request) {
 
 func authFilter(w http.ResponseWriter, r *http.Request) {
 
-}
-
-func userHandler(w http.ResponseWriter, r *http.Request) {
-	optionsFilter(w, r)
-	if r.Method == "OPTIONS" {
-		return
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		gocommon.HttpErr(w, http.StatusBadRequest, err.Error())
-		log.Errorln("ioutil.ReadAll(r.Body) ERR: ", err)
-		return
-	}
-	log.Infoln(r.RequestURI, string(body))
-
-	stat, cookies, response, e := passport.Execute(r.RequestURI, body, r.Cookies())
-	if e != nil {
-		gocommon.HttpErr(w, http.StatusInternalServerError, e.Error())
-		log.Errorln("call passport ERR: ", err)
-		return
-	}
-	fmt.Println(stat, string(response), e)
-
-	if cookies != nil {
-		for _, cookie := range cookies {
-			http.SetCookie(w, cookie)
-		}
-	}
-
-	gocommon.HttpErr(w, stat, string(response))
-
-	return
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {

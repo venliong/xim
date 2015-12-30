@@ -8,9 +8,10 @@ import (
 	"net/http"
 )
 
-func HttpFriends() {
+func init() {
 	http.HandleFunc("/friends/list", friendsList)
 }
 
 func friendsList(w http.ResponseWriter, r *http.Request) {
+
 }
