@@ -1,4 +1,4 @@
-package main
+package face
 
 import (
 	"fmt"
@@ -6,11 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/liuhengloveyou/xim"
+	"github.com/liuhengloveyou/xim/common"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/session"
 )
 
 func HttpAccess() {
@@ -50,34 +49,12 @@ func optionsFilter(w http.ResponseWriter, r *http.Request) {
 }
 
 func authFilter(w http.ResponseWriter, r *http.Request) {
-	// 有会话存在吗？
-	r.Cookie(Conf.Session.)
-	//本地有会话信息吗?
-	sess, err := session.GetSession(w, r, nil)
-	if err != nil {
-		gocommon.HttpErr(w, http.StatusInternalServerError, err.Error())
-		log.Errorln(err.Error())
-		return
-	}
 
-	tmp := sess.Get("user")
-	if tmp != nil {
-		// 去会话中心查询
-		http.DefaultClient.Do(req *http.Request)
-	}
-
-	if tmp == nil {
-		gocommon.HttpErr(w, http.StatusForbidden, "请登录")
-		return
-	}
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	optionsFilter(w, r)
 	if r.Method == "OPTIONS" {
-		return
-	} else if r.Method != "POST" {
-		gocommon.HttpErr(w, http.StatusMethodNotAllowed, "只支持POST请求.")
 		return
 	}
 
@@ -126,7 +103,7 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 	log.Infoln("sendMessage X-API:", api)
 
 	switch api {
-	case xim.API_TEMPGROUP:
+	case common.API_TEMPGROUP:
 		if _, e := tgroup(r, "send"); e != nil {
 			log.Errorln("sendMessage tgroup ERR:", e.Error())
 			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
@@ -152,7 +129,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		user *xim.User
+		user *common.User
 		e    error
 	)
 
@@ -166,7 +143,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	switch api {
-	case xim.API_TEMPGROUP:
+	case common.API_TEMPGROUP:
 		if user, e = tgroup(r, "recv"); e != nil {
 			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
 			return
@@ -204,12 +181,13 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 // 正常1对1聊天
-func chat(r *http.Request) (user *xim.User, e error) {
+func chat(r *http.Request) (user *common.User, e error) {
 
+	return nil, nil
 }
 
 // 临时讨论组
-func tgroup(r *http.Request, logic string) (user *xim.User, e error) {
+func tgroup(r *http.Request, logic string) (user *common.User, e error) {
 	if "recv" == logic {
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 		if userid == "" || groupid == "" {

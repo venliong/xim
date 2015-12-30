@@ -1,4 +1,4 @@
-package xim
+package common
 
 import (
 	"github.com/liuhengloveyou/nodenet"

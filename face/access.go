@@ -2,20 +2,18 @@
 接入层
 */
 
-package main
+package face
 
 import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+
+	"github.com/liuhengloveyou/xim/common"
 
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/client"
 	"github.com/liuhengloveyou/passport/session"
-	"github.com/liuhengloveyou/xim"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -41,47 +39,11 @@ var (
 )
 
 var (
-	confile = flag.String("c", "access.conf.sample", "配置文件路径.")
-	proto   = flag.String("p", "http", "接入网络协议.")
+	confile = flag.String("access_conf", "access.conf.sample", "接入服务配置文件路径.")
+	proto   = flag.String("access_proto", "http", "接入服务网络协议.")
 )
 
-func initNodenet(fn string) error {
-	if e := nodenet.BuildFromConfig(fn); e != nil {
-		return e
-	}
-
-	mynode = nodenet.GetComponentByName(Conf.NodeName)
-	if mynode == nil {
-		return fmt.Errorf("No node: ", Conf.NodeName)
-	}
-
-	mynode.RegisterHandler(xim.MessagePushMsg{}, dealPushMsg)
-	go mynode.Run()
-
-	return nil
-}
-
-func SendMsgToUser(fromuserid, touserid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName("send"), xim.MessagePushMsg{From: fromuserid, To: touserid, Content: message})
-	log.Infoln(cMsg)
-
-	return nodenet.SendMsgToNext(cMsg)
-}
-
-func sigHandler() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGTERM)
-
-	go func() {
-		s := <-c
-		Sig = "service is suspend ..."
-		fmt.Println("Got signal:", s)
-	}()
-}
-
-func main() {
-	flag.Parse()
-
+func AccessMain() {
 	if e := gocommon.LoadJsonConfig(*confile, &Conf); e != nil {
 		panic(e)
 	}
@@ -97,8 +59,6 @@ func main() {
 
 	GID = &gocommon.GlobalID{Type: Conf.NodeName}
 
-	sigHandler()
-
 	switch *proto {
 	case "tcp":
 		TcpAccess()
@@ -109,17 +69,40 @@ func main() {
 	}
 }
 
+func initNodenet(fn string) error {
+	if e := nodenet.BuildFromConfig(fn); e != nil {
+		return e
+	}
+
+	mynode = nodenet.GetComponentByName(Conf.NodeName)
+	if mynode == nil {
+		return fmt.Errorf("No node: ", Conf.NodeName)
+	}
+
+	mynode.RegisterHandler(common.MessagePushMsg{}, dealPushMsg)
+	go mynode.Run()
+
+	return nil
+}
+
+func SendMsgToUser(fromuserid, touserid, message string) error {
+	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName("send"), common.MessagePushMsg{From: fromuserid, To: touserid, Content: message})
+	log.Infoln(cMsg)
+
+	return nodenet.SendMsgToNext(cMsg)
+}
+
 func AccessPrepireRelease(ss session.SessionStore) {
 	if ss != nil {
 		user := ss.Get("info")
 		if user != nil {
-			user.(*xim.User).Destroy()
+			user.(*common.User).Destroy()
 		}
 	}
 }
 
 func dealPushMsg(data interface{}) (result interface{}, err error) {
-	msg := data.(xim.MessagePushMsg)
+	msg := data.(common.MessagePushMsg)
 
 	sess, _ := users.GetSessionById(&msg.To)
 	user := sess.Get("info")
@@ -131,7 +114,7 @@ func dealPushMsg(data interface{}) (result interface{}, err error) {
 	bytemsg, _ := json.Marshal(msg)
 	log.Infoln("processPushMessage:", user, string(bytemsg))
 
-	user.(*xim.User).PushMessage(string(bytemsg))
+	user.(*common.User).PushMessage(string(bytemsg))
 
 	return nil, nil
 }

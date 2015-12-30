@@ -1,4 +1,4 @@
-package xim
+package common
 
 import (
 	"container/list"

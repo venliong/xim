@@ -1,15 +1,15 @@
-package main
+package face
 
 import (
 	"fmt"
 
 	"github.com/liuhengloveyou/nodenet"
-	"github.com/liuhengloveyou/xim"
+	"github.com/liuhengloveyou/xim/common"
 
 	log "github.com/golang/glog"
 )
 
-func TGroutRecv(uid, gid string) (user *xim.User, e error) {
+func TGroutRecv(uid, gid string) (user *common.User, e error) {
 	if uid == "" {
 		return nil, fmt.Errorf("userid nil")
 	}
@@ -25,18 +25,18 @@ func TGroutRecv(uid, gid string) (user *xim.User, e error) {
 	info := sess.Get("info")
 	if info != nil {
 		log.Infoln("tgroup userlogined:", gid, uid)
-		return info.(*xim.User), nil
+		return info.(*common.User), nil
 	}
 
 	log.Infoln("tgroup userlogin:", gid, uid)
-	sess.Set("info", xim.NewUser(fmt.Sprintf("%s.%s", gid, uid)))
+	sess.Set("info", common.NewUser(fmt.Sprintf("%s.%s", gid, uid)))
 
-	g := nodenet.GetGraphByName(xim.API_TEMPGROUP)
+	g := nodenet.GetGraphByName(common.API_TEMPGROUP)
 	if len(g) < 1 {
-		return nil, fmt.Errorf("graph nil:", xim.API_TEMPGROUP)
+		return nil, fmt.Errorf("graph nil:", common.API_TEMPGROUP)
 	}
 
-	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, g, xim.MessageTGLogin{Uid: uid, Gid: gid, Access: Conf.NodeName})
+	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, g, common.MessageTGLogin{Uid: uid, Gid: gid, Access: Conf.NodeName})
 	cMsg.DispenseKey = gid
 
 	if e = nodenet.SendMsgToNext(cMsg); e != nil {
@@ -48,7 +48,7 @@ func TGroutRecv(uid, gid string) (user *xim.User, e error) {
 }
 
 func TGroutSend(uid, gid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName(xim.API_TEMPGROUP), &xim.MessagePushMsg{From: uid, To: gid, Content: message})
+	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName(common.API_TEMPGROUP), &common.MessagePushMsg{From: uid, To: gid, Content: message})
 	cMsg.DispenseKey = gid
 	log.Infoln(cMsg)
 

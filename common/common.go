@@ -1,4 +1,4 @@
-package xim
+package common
 
 // 接口类型, 对应nodenet的组
 const (
