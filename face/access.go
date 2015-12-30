@@ -1,6 +1,6 @@
 /*
-接入层
-*/
+ * 接入层
+ */
 
 package face
 
@@ -12,7 +12,7 @@ import (
 	"github.com/liuhengloveyou/xim/common"
 
 	"github.com/liuhengloveyou/nodenet"
-	"github.com/liuhengloveyou/passport/client"
+	passport "github.com/liuhengloveyou/passport/client"
 	"github.com/liuhengloveyou/passport/session"
 
 	log "github.com/golang/glog"
@@ -35,7 +35,7 @@ var (
 
 	users    *session.SessionManager
 	mynode   *nodenet.Component
-	passport *client.Passport
+	Passport *passport.Passport
 )
 
 var (
@@ -55,7 +55,7 @@ func AccessMain() {
 	users = session.NewSessionManager(Conf.Session)
 	users.SetPrepireRelease(AccessPrepireRelease)
 
-	passport = &client.Passport{ServAddr: Conf.Passport}
+	Passport = &passport.Passport{ServAddr: Conf.Passport}
 
 	GID = &gocommon.GlobalID{Type: Conf.NodeName}
 
@@ -96,7 +96,7 @@ func AccessPrepireRelease(ss session.SessionStore) {
 	if ss != nil {
 		user := ss.Get("info")
 		if user != nil {
-			user.(*common.User).Destroy()
+			user.(*common.UserMessage).Destroy()
 		}
 	}
 }
@@ -114,7 +114,7 @@ func dealPushMsg(data interface{}) (result interface{}, err error) {
 	bytemsg, _ := json.Marshal(msg)
 	log.Infoln("processPushMessage:", user, string(bytemsg))
 
-	user.(*common.User).PushMessage(string(bytemsg))
+	user.(*common.UserMessage).PushMessage(string(bytemsg))
 
 	return nil, nil
 }

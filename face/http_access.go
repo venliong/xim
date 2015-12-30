@@ -96,7 +96,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		user *common.User
+		user *common.UserMessage
 		e    error
 	)
 
@@ -148,13 +148,13 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 // 正常1对1聊天
-func chat(r *http.Request) (user *common.User, e error) {
+func chat(r *http.Request) (user *common.UserMessage, e error) {
 
 	return nil, nil
 }
 
 // 临时讨论组
-func tgroup(r *http.Request, logic string) (user *common.User, e error) {
+func tgroup(r *http.Request, logic string) (user *common.UserMessage, e error) {
 	if "recv" == logic {
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 		if userid == "" || groupid == "" {

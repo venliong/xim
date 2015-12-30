@@ -19,3 +19,12 @@ const (
 const (
 	MsgText = iota // 文本消息
 )
+
+// 用户信息
+type UserInfo struct {
+	Id        int64  `validate:"-" json:"id,omitempty"`
+	Cellphone string `validate:"noneor,cellphone" json:"cellphone,omitempty"`
+	Email     string `validate:"noneor,email" json:"email,omitempty"`
+	Nickname  string `validate:"noneor,max=20" json:"nickname,omitempty"`
+	Password  string `validate:"nonone,min=6,max=64" json:"password,omitempty"`
+}

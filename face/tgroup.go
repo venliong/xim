@@ -9,7 +9,7 @@ import (
 	log "github.com/golang/glog"
 )
 
-func TGroutRecv(uid, gid string) (user *common.User, e error) {
+func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
 	if uid == "" {
 		return nil, fmt.Errorf("userid nil")
 	}
@@ -25,11 +25,11 @@ func TGroutRecv(uid, gid string) (user *common.User, e error) {
 	info := sess.Get("info")
 	if info != nil {
 		log.Infoln("tgroup userlogined:", gid, uid)
-		return info.(*common.User), nil
+		return info.(*common.UserMessage), nil
 	}
 
 	log.Infoln("tgroup userlogin:", gid, uid)
-	sess.Set("info", common.NewUser(fmt.Sprintf("%s.%s", gid, uid)))
+	sess.Set("info", common.NewUserMessage(fmt.Sprintf("%s.%s", gid, uid)))
 
 	g := nodenet.GetGraphByName(common.API_TEMPGROUP)
 	if len(g) < 1 {

@@ -5,30 +5,30 @@ import (
 	"sync"
 )
 
-type User struct {
+type UserMessage struct {
 	ID       string
 	MsgChan  chan string
 	messages *list.List
 	lock     sync.RWMutex
 }
 
-func NewUser(userid string) *User {
+func NewUserMessage(userid string) *UserMessage {
 	if userid == "" {
 		return nil
 	}
 
-	return &User{
+	return &UserMessage{
 		ID:       userid,
 		MsgChan:  make(chan string, 0),
 		messages: list.New()}
 }
 
-func (p *User) Destroy() {
+func (p *UserMessage) Destroy() {
 	p.messages.Init()
 	close(p.MsgChan)
 }
 
-func (p *User) PushMessage(message string) {
+func (p *UserMessage) PushMessage(message string) {
 	select {
 	case p.MsgChan <- message:
 	default:
@@ -38,7 +38,7 @@ func (p *User) PushMessage(message string) {
 	}
 }
 
-func (p *User) HistoryMessage() string {
+func (p *UserMessage) HistoryMessage() string {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
