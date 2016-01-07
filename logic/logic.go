@@ -19,18 +19,8 @@ import (
 	"github.com/liuhengloveyou/passport/session"
 )
 
-type Config struct {
-	Nodes []struct {
-		Name  string            `json:"name"`
-		Works map[string]string `json:"works"`
-	} `json:"nodes"`
-	Session  interface{} `json:"session"`
-	NodeConf string      `json:"nodeConf"`
-}
-
 var (
-	Sig  string
-	Conf Config // 系统配置信息
+	Sig string
 
 	mynodes  map[string]*nodenet.Component
 	passport *client.Passport

@@ -36,7 +36,7 @@ func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
 		return nil, fmt.Errorf("graph nil:", common.API_TEMPGROUP)
 	}
 
-	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, g, common.MessageTGLogin{Uid: uid, Gid: gid, Access: Conf.NodeName})
+	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, g, common.MessageTGLogin{Uid: uid, Gid: gid, Access: common.AccessConf.NodeName})
 	cMsg.DispenseKey = gid
 
 	if e = nodenet.SendMsgToNext(cMsg); e != nil {
@@ -48,7 +48,7 @@ func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
 }
 
 func TGroutSend(uid, gid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName(common.API_TEMPGROUP), &common.MessagePushMsg{From: uid, To: gid, Content: message})
+	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName(common.API_TEMPGROUP), &common.MessagePushMsg{From: uid, To: gid, Content: message})
 	cMsg.DispenseKey = gid
 	log.Infoln(cMsg)
 

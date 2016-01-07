@@ -9,33 +9,20 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/liuhengloveyou/xim/common"
-
 	"github.com/liuhengloveyou/nodenet"
-	passport "github.com/liuhengloveyou/passport/client"
 	"github.com/liuhengloveyou/passport/session"
+	"github.com/liuhengloveyou/xim/common"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
-type Config struct {
-	Addr     string      `json:"addr"`
-	Port     int         `json:"port"`
-	NodeName string      `json:"nodeName"`
-	NodeConf string      `json:"nodeConf"`
-	Passport string      `json:"passport"`
-	Session  interface{} `json:"session"`
-}
-
 var (
-	Sig  string
-	Conf Config // 系统配置信息
-	GID  *gocommon.GlobalID
+	Sig string
+	GID *gocommon.GlobalID
 
-	users    *session.SessionManager
-	mynode   *nodenet.Component
-	Passport *passport.Passport
+	users  *session.SessionManager
+	mynode *nodenet.Component
 )
 
 var (
@@ -44,20 +31,18 @@ var (
 )
 
 func AccessMain() {
-	if e := gocommon.LoadJsonConfig(*confile, &Conf); e != nil {
+	if e := common.InitAccessServ(*confile); e != nil {
 		panic(e)
 	}
 
-	if e := initNodenet(Conf.NodeConf); e != nil {
+	if e := initNodenet(common.AccessConf.NodeConf); e != nil {
 		panic(e)
 	}
 
-	users = session.NewSessionManager(Conf.Session)
+	users = session.NewSessionManager(common.AccessConf.Session)
 	users.SetPrepireRelease(AccessPrepireRelease)
 
-	Passport = &passport.Passport{ServAddr: Conf.Passport}
-
-	GID = &gocommon.GlobalID{Type: Conf.NodeName}
+	GID = &gocommon.GlobalID{Type: common.AccessConf.NodeName}
 
 	switch *proto {
 	case "tcp":
@@ -74,9 +59,9 @@ func initNodenet(fn string) error {
 		return e
 	}
 
-	mynode = nodenet.GetComponentByName(Conf.NodeName)
+	mynode = nodenet.GetComponentByName(common.AccessConf.NodeName)
 	if mynode == nil {
-		return fmt.Errorf("No node: ", Conf.NodeName)
+		return fmt.Errorf("No node: ", common.AccessConf.NodeName)
 	}
 
 	mynode.RegisterHandler(common.MessagePushMsg{}, dealPushMsg)
@@ -86,7 +71,7 @@ func initNodenet(fn string) error {
 }
 
 func SendMsgToUser(fromuserid, touserid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), Conf.NodeName, nodenet.GetGraphByName("send"), common.MessagePushMsg{From: fromuserid, To: touserid, Content: message})
+	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName("send"), common.MessagePushMsg{From: fromuserid, To: touserid, Content: message})
 	log.Infoln(cMsg)
 
 	return nodenet.SendMsgToNext(cMsg)

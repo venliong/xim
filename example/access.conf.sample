@@ -1,7 +1,7 @@
 {
 "addr": "",
 "port": 10000,
-"passport":"http://127.0.0.1:8080",
+"passport":"http://127.0.0.1:10001",
 "session":{
 	"domain":        "xim.com",
 	"cookie_name":   "ximsession",
@@ -9,6 +9,12 @@
 	"idle_time":     180,
 	"cookie_expire": 180
 },
+"dbs":[{
+	"name": "xim",
+	"ng_type": "xorm",
+	"db_type": "mysql",
+	"dsn": "root:root@tcp(127.0.0.1:3306)/xim?charset=utf8"
+}],
 
 "nodeName":"access-1",
 "nodeConf":"example/nodenet.conf.sample"

@@ -5,15 +5,17 @@ import (
 	"net"
 	"time"
 
+	"github.com/liuhengloveyou/xim/common"
+
 	log "github.com/golang/glog"
 )
 
 func TcpAccess() {
-	listen, err := net.ListenTCP("tcp", &net.TCPAddr{net.ParseIP(Conf.Addr), Conf.Port, ""})
+	listen, err := net.ListenTCP("tcp", &net.TCPAddr{net.ParseIP(common.AccessConf.Addr), common.AccessConf.Port, ""})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("TCP IM GO... %v:%v", Conf.Addr, Conf.Port)
+	fmt.Printf("TCP IM GO... %v:%v", common.AccessConf.Addr, common.AccessConf.Port)
 
 	for {
 		conn, err := listen.AcceptTCP()

@@ -26,13 +26,13 @@ func HttpAccess() {
 	})
 
 	s := &http.Server{
-		Addr:           fmt.Sprintf("%v:%v", Conf.Addr, Conf.Port),
+		Addr:           fmt.Sprintf("%v:%v", common.AccessConf.Addr, common.AccessConf.Port),
 		ReadTimeout:    10 * time.Minute,
 		WriteTimeout:   10 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	fmt.Printf("HTTP IM GO... %v:%v\n", Conf.Addr, Conf.Port)
+	fmt.Printf("HTTP IM GO... %v:%v\n", common.AccessConf.Addr, common.AccessConf.Port)
 	if err := s.ListenAndServe(); err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}

@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/liuhengloveyou/xim/common"
+	"github.com/liuhengloveyou/xim/service"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -39,9 +39,8 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Infoln(string(body))
 
-	user := &common.UserInfo{}
-	err = json.Unmarshal(body, user)
-	if err != nil {
+	user := &service.User{}
+	if err = json.Unmarshal(body, user); err != nil {
 		log.Errorln("json.Unmarshal(body, user) ERR: ", err)
 		gocommon.HttpErr(w, http.StatusBadRequest, err.Error())
 		return
@@ -64,9 +63,15 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userid, err := Passport.UserAdd(user.Cellphone, user.Email, user.Nickname, user.Password)
-	fmt.Println(userid, err)
+	if err = user.AddUser(); err != nil {
+		log.Errorln("AddUser ERR: ", err)
+		gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误.")
+		return
 
+	}
+
+	log.Infoln("add user:", user)
+	fmt.Fprintf(w, "{\"userid\":\"%s\"}", user.Userid)
 	return
 }
 
