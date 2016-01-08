@@ -28,8 +28,10 @@ func friendsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if e := r.ParseForm(); e != nil {
-		gocommon.HttpErr(w, http.StatusBadRequest, e.Error())
+	_, auth := authFilter(w, r)
+	if auth == false {
+		log.Errorln("friendsList ERR: 末登录用户.")
+		gocommon.HttpErr(w, http.StatusForbidden, "末登录用户.")
 		return
 	}
 
@@ -43,6 +45,8 @@ func friendsList(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusBadRequest, e.Error())
 		return
 	}
+	log.Infoln("friendsList:", iver)
+
 	result, e := service.List(uint(iver))
 	if e != nil {
 		log.Errorln("friendsList ERR:", e.Error())
@@ -50,6 +54,7 @@ func friendsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Infoln("friendsList:", iver, string(result))
 	if _, e = w.Write(result); e != nil {
 		log.Exitln(e)
 	}

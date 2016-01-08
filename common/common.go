@@ -1,8 +1,11 @@
 package common
 
 import (
+	"fmt"
+
 	gocommon "github.com/liuhengloveyou/go-common"
 	passport "github.com/liuhengloveyou/passport/client"
+	"github.com/liuhengloveyou/passport/session"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
@@ -39,11 +42,15 @@ var (
 
 func InitAccessServ(confile string) error {
 	if e := gocommon.LoadJsonConfig(confile, &AccessConf); e != nil {
-		panic(e)
+		return e
 	}
 
 	if e := gocommon.InitDBPool(AccessConf.DBs, Xorms); e != nil {
 		return e
+	}
+
+	if nil == session.InitDefaultSessionManager(AccessConf.Session) {
+		return fmt.Errorf("InitDefaultSessionManager err.")
 	}
 
 	Passport = &passport.Passport{ServAddr: AccessConf.Passport}

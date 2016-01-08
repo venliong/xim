@@ -1,12 +1,16 @@
 package face
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/liuhengloveyou/passport/session"
 	"github.com/liuhengloveyou/xim/common"
+	"github.com/liuhengloveyou/xim/service"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -39,6 +43,8 @@ func HttpAccess() {
 }
 
 func optionsFilter(w http.ResponseWriter, r *http.Request) {
+	return
+
 	w.Header().Set("Access-Control-Allow-Origin", "http://web.xim.com:9000")
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -48,8 +54,53 @@ func optionsFilter(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func authFilter(w http.ResponseWriter, r *http.Request) {
+func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionStore, auth bool) {
+	if e := r.ParseForm(); e != nil {
+		return nil, false
+	}
 
+	token := strings.TrimSpace(r.FormValue("token"))
+	if token == "" {
+		sessionConf := common.AccessConf.Session.(map[string]interface{})
+		if cookie, e := r.Cookie(sessionConf["cookie_name"].(string)); e == nil {
+			if cookie != nil {
+				token = cookie.Value
+			}
+		}
+	}
+	if token == "" {
+		log.Errorln("token nil")
+		return nil, false
+	}
+
+	sess, err := session.GetSessionById(token)
+	if err != nil {
+		log.Warningln("session ERR:", err.Error())
+		return nil, false
+	}
+
+	if sess.Get("user") == nil {
+		log.Errorln("session no user:", sess)
+		// passport auth.
+		info, err := common.Passport.UserAuth(token)
+		if err != nil {
+			log.Errorln("passport auth ERR:", err.Error())
+			return nil, false
+		}
+
+		user := &service.User{}
+		if err := json.Unmarshal(info, user); err != nil {
+			log.Errorln("passport response ERR:", string(info))
+			return nil, false
+
+		}
+
+		sess.Set("user", user)
+		log.Errorln("session from passport:", sess)
+		return sess, true
+	}
+
+	return nil, false
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {

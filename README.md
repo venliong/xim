@@ -2,54 +2,49 @@
 
 Im by GO
 
-##数据库
-	
-	CREATE DATABASE `xim` IF NOTEXISTS /*!40100 DEFAULT CHARACTER SET utf8 COLLATE utf8_bin */;
-
-	CREATE TABLE `xim`.`users` (
-	  `id` bigint(64) NOT NULL,
-	  `cellphone` varchar(11) COLLATE utf8_bin DEFAULT NULL,
-	  `email` varchar(45) COLLATE utf8_bin DEFAULT NULL,
-	  `nickname` varchar(45) CHARACTER SET utf8 DEFAULT NULL,
-	  `password` varchar(45) COLLATE utf8_bin NOT NULL,
-	  `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	  `update_time` datetime NOT NULL,
-	  `stat` int(11) NOT NULL DEFAULT '0',
-	  `version` int(11) DEFAULT NULL,
-	  PRIMARY KEY (`id`),
-	  UNIQUE KEY `phone_UNIQUE` (`cellphone`),
-	  UNIQUE KEY `email_UNIQUE` (`email`),
-	  UNIQUE KEY `nickname_UNIQUE` (`nickname`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-	
-
 ##接口
+
+###接收消息
+
+	POST /recv
+
+	X-API:
+	
+###拉取好友列表
+	GET /friends/list?v=客户端当前好友列表版本&token=认证串或者放在cookie里
+	成功: 200 ["好友userid", ...]
+	失败: ^200 {"message":"错误信息."}	
+
 ###添加用户
-```
-POST /user/add
-body:
-{
-	"cellphone":"18510511015", 
-	"email":"liuhengloveyou@gmail.com",
-	"nickname":"恒恒 ",
-	"password":"123456"
-}
-```
+	POST /user/add
+	Body:
+	{
+		"cellphone":"18510511015", 
+		"email":"liuhengloveyou@gmail.com",
+		"nickname":"恒恒 ",
+		"password":"123456"
+	}
 
 ###用户登录
-```
-POST /user/login
-{
-	"cellphone":"15236379552", 
-	"email":"liuhengloveyou@gmail.com",
-	"nickname":"恒恒",
-	"password":"123456"
-}	
-```
-	
-###接收消息
-```
-POST /recv
 
-X-API:
-```
+	POST /user/login
+	Body:{
+		"cellphone":"15236379552", 
+		"email":"liuhengloveyou@gmail.com",
+		"nickname":"恒恒",
+		"password":"123456"
+	}		
+
+	
+
+##数据库
+	
+	CREATE DATABASE `xim` /*!40100 DEFAULT CHARACTER SET utf8 COLLATE utf8_bin */;
+
+	CREATE TABLE `xim`.`user` (
+	  `id` VARCHAR(45) NOT NULL,
+	  `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	  `version` int(11) DEFAULT NULL,
+	  PRIMARY KEY (`id`),
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+	

@@ -21,7 +21,6 @@ var (
 	Sig string
 	GID *gocommon.GlobalID
 
-	users  *session.SessionManager
 	mynode *nodenet.Component
 )
 
@@ -39,9 +38,7 @@ func AccessMain() {
 		panic(e)
 	}
 
-	users = session.NewSessionManager(common.AccessConf.Session)
-	users.SetPrepireRelease(AccessPrepireRelease)
-
+	session.SetPrepireRelease(AccessPrepireRelease)
 	GID = &gocommon.GlobalID{Type: common.AccessConf.NodeName}
 
 	switch *proto {
@@ -89,7 +86,7 @@ func AccessPrepireRelease(ss session.SessionStore) {
 func dealPushMsg(data interface{}) (result interface{}, err error) {
 	msg := data.(common.MessagePushMsg)
 
-	sess, _ := users.GetSessionById(&msg.To)
+	sess, _ := session.GetSessionById(msg.To)
 	user := sess.Get("info")
 	if user == nil {
 		log.Errorln("No such session: ", msg.To)

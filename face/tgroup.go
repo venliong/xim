@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/liuhengloveyou/nodenet"
+	"github.com/liuhengloveyou/passport/session"
 	"github.com/liuhengloveyou/xim/common"
 
 	log "github.com/golang/glog"
@@ -18,7 +19,7 @@ func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
 	}
 
 	sid := fmt.Sprintf("%s.%s", gid, uid)
-	sess, e := users.GetSessionById(&sid)
+	sess, e := session.GetSessionById(sid)
 	if e != nil {
 		return nil, e
 	}
