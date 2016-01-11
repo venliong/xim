@@ -54,8 +54,8 @@ func friendsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infoln("friendsList:", iver, string(result))
-	if _, e = w.Write(result); e != nil {
+	log.Infoln("friendsList:", iver, result)
+	if _, e = w.Write([]byte(result)); e != nil {
 		log.Exitln(e)
 	}
 }

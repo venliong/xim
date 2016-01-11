@@ -13,14 +13,13 @@ type User struct {
 }
 
 func (p *User) Insert() (e error) {
-	p.AddTime = time.Now()
-	_, e = common.Xorms["xim"].InsertOne(p)
+	_, e = common.DBs["xim"].Insert("INSERT INFO user values(?,?,?)", p.Userid, time.Now(), time.Now().Unix())
 
 	return
 }
 
 func (p *User) Update() (e error) {
-	_, e = common.Xorms["xim"].Id(p.Userid).Update(p)
+	// _, e = common.DBs["xim"].Id(p.Userid).Update(p)
 
 	return
 }

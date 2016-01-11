@@ -11,7 +11,7 @@
 },
 "dbs":[{
 	"name": "xim",
-	"ng_type": "xorm",
+	"ng_type": "mysql",
 	"db_type": "mysql",
 	"dsn": "root:root@tcp(127.0.0.1:3306)/xim?charset=utf8"
 }],

@@ -8,7 +8,6 @@ import (
 	"github.com/liuhengloveyou/passport/session"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/xorm"
 )
 
 type AccessConfig struct {
@@ -37,7 +36,7 @@ var (
 
 	Passport *passport.Passport
 
-	Xorms = make(map[string]*xorm.Engine)
+	DBs = make(map[string]*gocommon.DBmysql)
 )
 
 func InitAccessServ(confile string) error {
@@ -45,7 +44,7 @@ func InitAccessServ(confile string) error {
 		return e
 	}
 
-	if e := gocommon.InitDBPool(AccessConf.DBs, Xorms); e != nil {
+	if e := gocommon.InitDBPool(AccessConf.DBs, DBs); e != nil {
 		return e
 	}
 

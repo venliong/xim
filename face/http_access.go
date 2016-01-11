@@ -79,28 +79,27 @@ func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionSto
 		return nil, false
 	}
 
-	if sess.Get("user") == nil {
-		log.Errorln("session no user:", sess)
-		// passport auth.
-		info, err := common.Passport.UserAuth(token)
-		if err != nil {
-			log.Errorln("passport auth ERR:", err.Error())
-			return nil, false
-		}
-
-		user := &service.User{}
-		if err := json.Unmarshal(info, user); err != nil {
-			log.Errorln("passport response ERR:", string(info))
-			return nil, false
-
-		}
-
-		sess.Set("user", user)
-		log.Errorln("session from passport:", sess)
+	if sess.Get("user") != nil {
 		return sess, true
 	}
 
-	return nil, false
+	log.Errorln("passport auth:", sess)
+	// passport auth.
+	info, err := common.Passport.UserAuth(token)
+	if err != nil {
+		log.Errorln("passport auth ERR:", err.Error())
+		return nil, false
+	}
+
+	user := &service.User{}
+	if err := json.Unmarshal(info, user); err != nil {
+		log.Errorln("passport response ERR:", string(info))
+		return nil, false
+	}
+
+	sess.Set("user", user)
+	log.Errorln("session from passport:", sess)
+	return sess, true
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {
