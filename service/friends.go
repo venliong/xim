@@ -1,19 +1,15 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/liuhengloveyou/xim/dao"
 )
 
-func List(version uint) (result string, e error) {
-	one := &dao.Friends{}
-	has, e := one.GetOneByVersion(version)
-	fmt.Println(has, e, one.Friends)
-	if e != nil {
+func FriendList(userid string, version uint) (result string, e error) {
+	one := &dao.Friends{Userid: userid, Version: int(version)}
+	if e = one.GetOneByVersion(); e != nil {
 		return "", e
 	}
-	if has && one.Friends != nil {
+	if one.Friends != nil {
 		return *one.Friends, nil
 	}
 

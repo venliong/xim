@@ -28,12 +28,13 @@ func friendsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, auth := authFilter(w, r)
+	sess, auth := authFilter(w, r)
 	if auth == false {
 		log.Errorln("friendsList ERR: 末登录用户.")
 		gocommon.HttpErr(w, http.StatusForbidden, "末登录用户.")
 		return
 	}
+	userid := sess.Get("user").(*service.User).Userid
 
 	ver := strings.TrimSpace(r.FormValue("v"))
 	if ver == "" {
@@ -45,9 +46,8 @@ func friendsList(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusBadRequest, e.Error())
 		return
 	}
-	log.Infoln("friendsList:", iver)
 
-	result, e := service.List(uint(iver))
+	result, e := service.FriendList(userid, uint(iver))
 	if e != nil {
 		log.Errorln("friendsList ERR:", e.Error())
 		gocommon.HttpErr(w, http.StatusInternalServerError, "数据库服务错误.")

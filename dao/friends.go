@@ -1,11 +1,13 @@
 package dao
 
 import (
+	"database/sql"
+
 	"github.com/liuhengloveyou/xim/common"
 )
 
 type Friends struct {
-	Userid  *string `xorm:"not null pk INT(11)"`
+	Userid  string  `xorm:"not null pk INT(11)"`
 	Friends *string `xorm:"JSON"`
 	Version int     `xorm:"INT(11)"`
 }
@@ -28,8 +30,18 @@ func (p *Friends) GetOne() (has bool, e error) {
 	return
 }
 
-func (p *Friends) GetOneByVersion(ver uint) (has bool, e error) {
-	//	has, e = common.DBs["xim"].Where("version>?", ver).Get(p)
+func (p *Friends) GetOneByVersion() (e error) {
+	var rst sql.NullString
+	if e = common.DBs["xim"].Conn.QueryRow("SELECT * FROM friends WHERE userid=? and version > ?;", p.Userid, p.Version).Scan(&p.Userid, &rst, &p.Version); e != nil {
+		if e == sql.ErrNoRows {
+			e = nil
+		}
+
+		return
+	}
+	if rst.Valid {
+		p.Friends = &rst.String
+	}
 
 	return
 }
