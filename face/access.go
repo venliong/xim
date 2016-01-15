@@ -78,7 +78,7 @@ func AccessPrepireRelease(ss session.SessionStore) {
 	if ss != nil {
 		user := ss.Get("info")
 		if user != nil {
-			user.(*common.UserMessage).Destroy()
+			user.(*UserSession).Destroy()
 		}
 	}
 }
@@ -96,7 +96,7 @@ func dealPushMsg(data interface{}) (result interface{}, err error) {
 	bytemsg, _ := json.Marshal(msg)
 	log.Infoln("processPushMessage:", user, string(bytemsg))
 
-	user.(*common.UserMessage).PushMessage(string(bytemsg))
+	user.(*UserSession).PushMessage(string(bytemsg))
 
 	return nil, nil
 }

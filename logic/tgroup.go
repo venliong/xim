@@ -1,25 +1,25 @@
-package main
+package logic
 
 import (
 	"fmt"
 
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/session"
-	"github.com/liuhengloveyou/xim"
+	"github.com/liuhengloveyou/xim/common"
 
 	log "github.com/golang/glog"
 )
 
 func init() {
-	nodenet.RegisterWorker("tempGroupLogin", xim.MessageTGLogin{}, TempGroupLogin)
-	nodenet.RegisterWorker("tempGroupSend", xim.MessagePushMsg{}, TempGroupSend)
+	nodenet.RegisterWorker("TempGroupLogin", common.MessageTGLogin{}, TempGroupLogin)
+	nodenet.RegisterWorker("TempGroupSend", common.MessagePushMsg{}, TempGroupSend)
 }
 
 func TempGroupLogin(data interface{}) (result interface{}, err error) {
-	var msg = data.(xim.MessageTGLogin)
+	var msg = data.(common.MessageTGLogin)
 	log.Infoln("tgroupLogin:", msg)
 
-	sess, err := session.GetSessionById(&msg.Gid)
+	sess, err := session.GetSessionById(msg.Gid)
 	if err != nil {
 		return nil, err
 	}
@@ -34,10 +34,10 @@ func TempGroupLogin(data interface{}) (result interface{}, err error) {
 }
 
 func TempGroupSend(data interface{}) (result interface{}, err error) {
-	var msg = data.(xim.MessagePushMsg)
+	var msg = data.(common.MessagePushMsg)
 	log.Infoln(msg)
 
-	sess, err := session.GetSessionById(&msg.To)
+	sess, err := session.GetSessionById(msg.To)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func TempGroupSend(data interface{}) (result interface{}, err error) {
 			continue
 		}
 
-		cMsg := nodenet.NewMessage("", "", nil, xim.MessagePushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content})
+		cMsg := nodenet.NewMessage("", "", nil, common.MessagePushMsg{From: msg.From, To: fmt.Sprintf("%v.%v", msg.To, keys[i]), Group: msg.To, Content: msg.Content})
 		log.Infoln("tgroup pushmsg: ", stat.(string), cMsg)
 
 		if err = nodenet.SendMsgToComponent(stat.(string), cMsg); err != nil {

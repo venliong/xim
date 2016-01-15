@@ -1,34 +1,34 @@
-package common
+package face
 
 import (
 	"container/list"
 	"sync"
 )
 
-type UserMessage struct {
+type UserSession struct {
 	ID       string
 	MsgChan  chan string
 	messages *list.List
 	lock     sync.RWMutex
 }
 
-func NewUserMessage(userid string) *UserMessage {
-	if userid == "" {
+func NewUserSession(id string) *UserSession {
+	if id == "" {
 		return nil
 	}
 
-	return &UserMessage{
-		ID:       userid,
+	return &UserSession{
+		ID:       id,
 		MsgChan:  make(chan string, 0),
 		messages: list.New()}
 }
 
-func (p *UserMessage) Destroy() {
+func (p *UserSession) Destroy() {
 	p.messages.Init()
 	close(p.MsgChan)
 }
 
-func (p *UserMessage) PushMessage(message string) {
+func (p *UserSession) PushMessage(message string) {
 	select {
 	case p.MsgChan <- message:
 	default:
@@ -38,7 +38,7 @@ func (p *UserMessage) PushMessage(message string) {
 	}
 }
 
-func (p *UserMessage) HistoryMessage() string {
+func (p *UserSession) HistoryMessage() string {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 

@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/liuhengloveyou/xim/face"
+	"github.com/liuhengloveyou/xim/logic"
 )
 
 var Sig string
@@ -24,6 +25,8 @@ func main() {
 	switch *service {
 	case "access":
 		face.AccessMain()
+	case "logic":
+		logic.LogicMain()
 	default:
 		flag.Usage()
 		os.Exit(0)

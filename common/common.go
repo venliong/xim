@@ -44,15 +44,27 @@ func InitAccessServ(confile string) error {
 		return e
 	}
 
-	if e := gocommon.InitDBPool(AccessConf.DBs, DBs); e != nil {
-		return e
-	}
-
 	if nil == session.InitDefaultSessionManager(AccessConf.Session) {
 		return fmt.Errorf("InitDefaultSessionManager err.")
 	}
 
+	if e := gocommon.InitDBPool(AccessConf.DBs, DBs); e != nil {
+		return e
+	}
+
 	Passport = &passport.Passport{ServAddr: AccessConf.Passport}
+
+	return nil
+}
+
+func InitLogicServ(confile string) error {
+	if e := gocommon.LoadJsonConfig(confile, &LogicConf); e != nil {
+		return e
+	}
+
+	if nil == session.InitDefaultSessionManager(LogicConf.Session) {
+		return fmt.Errorf("InitDefaultSessionManager err.")
+	}
 
 	return nil
 }

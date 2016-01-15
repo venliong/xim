@@ -7,6 +7,7 @@
 	      "url": "127.0.0.1:5001",
 	      "timeout": 3}
 	},
+	
 	{
         "name": "tgroup-127.0.0.1.6001",
         "intype": "tcp",
@@ -14,8 +15,9 @@
 	      "url": "127.0.0.1:6001",
 	      "timeout": 3}
 	},
+	
 	{
-        "name": "tgroup-127.0.0.1.6002",
+        "name": "state-127.0.0.1.6002",
         "intype": "tcp",
 	"inconf": {
 	      "url": "127.0.0.1:6002",
@@ -27,9 +29,14 @@
 	"name": "tgroup",
 	"dispense":"hash",
 	"members":["tgroup-127.0.0.1.6001", "tgroup-127.0.0.1.6001"]
+	},{
+	"name": "state",
+	"dispense":"hash",
+	"members":["state-127.0.0.1.6002"]
 	}],
 
 "graphs": {
-	"tgroup":["tgroup"]
+	"tgroup":["tgroup"],
+	"state":["state"]
 }
 }

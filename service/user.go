@@ -13,6 +13,7 @@ type User struct {
 	Email     string `validate:"noneor,email" json:"email,omitempty"`
 	Nickname  string `validate:"noneor,max=20" json:"nickname,omitempty"`
 	Password  string `validate:"nonone,min=6,max=64" json:"password,omitempty"`
+	Client    string `json:"client,omitempty"`
 }
 
 func (p *User) AddUser() (e error) {
@@ -30,6 +31,10 @@ func (p *User) AddUser() (e error) {
 	}
 
 	return
+}
+
+func (p *User) Info() (e error) {
+	return nil
 }
 
 ////////

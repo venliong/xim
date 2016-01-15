@@ -83,8 +83,8 @@ func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionSto
 		return sess, true
 	}
 
-	log.Errorln("passport auth:", sess)
 	// passport auth.
+	log.Errorln("passport auth:", sess)
 	info, err := common.Passport.UserAuth(token)
 	if err != nil {
 		log.Errorln("passport auth ERR:", err.Error())
@@ -97,7 +97,8 @@ func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionSto
 		return nil, false
 	}
 
-	sess.Set("user", user)
+	sess.Set("user", user)              // 用户信息
+	sess.Set("sync", time.Now().Unix()) // 同步时间
 	log.Errorln("session from passport:", sess)
 	return sess, true
 }
@@ -111,6 +112,13 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, auth := authFilter(w, r)
+	if auth == false {
+		log.Errorln("send ERR: 末登录用户.")
+		gocommon.HttpErr(w, http.StatusForbidden, "末登录用户.")
+		return
+	}
+
 	api := r.Header.Get("X-API")
 	if api == "" {
 		log.Errorln("X-API nil")
@@ -120,7 +128,7 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 	log.Infoln("sendMessage X-API:", api)
 
 	switch api {
-	case common.API_TEMPGROUP:
+	case common.LOGIC_TEMPGROUP:
 		if _, e := tgroup(r, "send"); e != nil {
 			log.Errorln("sendMessage tgroup ERR:", e.Error())
 			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
@@ -140,53 +148,61 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	optionsFilter(w, r)
 	if r.Method == "OPTIONS" {
 		return
-	} else if r.Method != "POST" {
-		gocommon.HttpErr(w, http.StatusMethodNotAllowed, "只支持POST请求.")
+	}
+
+	sess, auth := authFilter(w, r)
+	if auth == false {
+		log.Errorln("recv ERR: 末登录用户.")
+		gocommon.HttpErr(w, http.StatusForbidden, "末登录用户.")
 		return
 	}
 
+	api := r.Header.Get("X-API")
+	/*
+		if api == "" {
+			log.Errorln("X-API nil")
+			gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
+			return
+		}
+	*/
+	log.Infoln("recvMessage X-API:", api)
+
 	var (
-		user *common.UserMessage
+		info *UserSession
 		e    error
 	)
 
-	api := r.Header.Get("X-API")
-	if api == "" {
-		log.Errorln("X-API nil")
-		gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
-		return
-	}
-	log.Infoln("recvMessage X-API:", api)
-
-	r.ParseForm()
 	switch api {
-	case common.API_TEMPGROUP:
-		if user, e = tgroup(r, "recv"); e != nil {
+	case common.LOGIC_TEMPGROUP:
+		if info, e = tgroup(r, "recv"); e != nil {
 			gocommon.HttpErr(w, http.StatusInternalServerError, "临时讨论组系统错误.")
 			return
 		}
 	default:
-		log.Errorln("X-API ERR:", api)
-		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
+		log.Errorln("userlogin:", sess.Id(""))
+		if info, e = StateUpdate(sess.Id("")); e != nil {
+			gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误.")
+			return
+		}
 	}
 
-	if user == nil {
+	if info == nil {
 		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
 		return
 	}
-	if user.ID == "" {
+	if info.ID == "" {
 		gocommon.HttpErr(w, http.StatusInternalServerError, "系统内部错误.")
 		return
 	}
 
-	ctx := user.HistoryMessage()
+	ctx := info.HistoryMessage()
 	if ctx == "" {
 		select {
-		case ctx = <-user.MsgChan:
+		case ctx = <-info.MsgChan:
 		case <-time.After(1 * time.Minute):
-			ctx = "TIMEOUT"
+			ctx = "TIMEOUT" // 长连接每分钟断开一次, 没有心跳
 		case <-w.(http.CloseNotifier).CloseNotify():
-			log.Warningln("client closed:", api, *user)
+			log.Warningln("client closed:", api, *info)
 			return
 		}
 	}
@@ -197,14 +213,8 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// 正常1对1聊天
-func chat(r *http.Request) (user *common.UserMessage, e error) {
-
-	return nil, nil
-}
-
 // 临时讨论组
-func tgroup(r *http.Request, logic string) (user *common.UserMessage, e error) {
+func tgroup(r *http.Request, logic string) (user *UserSession, e error) {
 	if "recv" == logic {
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 		if userid == "" || groupid == "" {
@@ -218,8 +228,6 @@ func tgroup(r *http.Request, logic string) (user *common.UserMessage, e error) {
 
 		return user, nil
 	} else if "send" == logic {
-		r.ParseForm()
-
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 		if userid == "" || groupid == "" {
 			return nil, fmt.Errorf("末知的用户或组.")

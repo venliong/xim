@@ -10,7 +10,7 @@ import (
 	log "github.com/golang/glog"
 )
 
-func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
+func TGroutRecv(uid, gid string) (info *UserSession, e error) {
 	if uid == "" {
 		return nil, fmt.Errorf("userid nil")
 	}
@@ -23,18 +23,18 @@ func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
 	if e != nil {
 		return nil, e
 	}
-	info := sess.Get("info")
-	if info != nil {
+
+	if sess.Get("info") != nil {
 		log.Infoln("tgroup userlogined:", gid, uid)
-		return info.(*common.UserMessage), nil
+		return sess.Get("info").(*UserSession), nil
 	}
 
 	log.Infoln("tgroup userlogin:", gid, uid)
-	sess.Set("info", common.NewUserMessage(fmt.Sprintf("%s.%s", gid, uid)))
+	sess.Set("info", NewUserSession(fmt.Sprintf("%s.%s", gid, uid)))
 
-	g := nodenet.GetGraphByName(common.API_TEMPGROUP)
+	g := nodenet.GetGraphByName(common.LOGIC_TEMPGROUP)
 	if len(g) < 1 {
-		return nil, fmt.Errorf("graph nil:", common.API_TEMPGROUP)
+		return nil, fmt.Errorf("graph nil:", common.LOGIC_TEMPGROUP)
 	}
 
 	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, g, common.MessageTGLogin{Uid: uid, Gid: gid, Access: common.AccessConf.NodeName})
@@ -45,11 +45,11 @@ func TGroutRecv(uid, gid string) (user *common.UserMessage, e error) {
 		return nil, e
 	}
 
-	return user, nil
+	return info, nil
 }
 
 func TGroutSend(uid, gid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName(common.API_TEMPGROUP), &common.MessagePushMsg{From: uid, To: gid, Content: message})
+	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName(common.LOGIC_TEMPGROUP), &common.MessagePushMsg{From: uid, To: gid, Content: message})
 	cMsg.DispenseKey = gid
 	log.Infoln(cMsg)
 
