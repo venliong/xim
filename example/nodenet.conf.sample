@@ -1,7 +1,7 @@
 {
 "components":[
 	{
-        "name": "access-1",
+        "name": "access-127.0.0.1.5001",
         "intype": "tcp",
 	"inconf": {
 	      "url": "127.0.0.1:5001",
