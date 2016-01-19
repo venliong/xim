@@ -22,6 +22,14 @@
 	"inconf": {
 	      "url": "127.0.0.1:6002",
 	      "timeout": 3}
+	},
+
+	{
+        "name": "forward-127.0.0.1.6003",
+        "intype": "tcp",
+	"inconf": {
+	      "url": "127.0.0.1:6003",
+	      "timeout": 3}
 	}],
 	
 "groups":[
@@ -33,10 +41,15 @@
 	"name": "state",
 	"dispense":"hash",
 	"members":["state-127.0.0.1.6002"]
+	},{
+	"name": "forward",
+	"dispense":"hash",
+	"members":["forward-127.0.0.1.6003"]
 	}],
 
 "graphs": {
 	"tgroup":["tgroup"],
-	"state":["state"]
+	"state":["state"],
+	"forward":["forward"]
 }
 }

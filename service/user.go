@@ -22,7 +22,7 @@ func (p *User) AddUser() (e error) {
 	// passport添加用户
 	var userid string
 	if userid, e = common.Passport.UserAdd(p.Cellphone, p.Email, p.Nickname, p.Password); e != nil {
-		return e //todo: 出错要更新
+		return e // 只能人工处理了
 	}
 	p.Userid = userid
 

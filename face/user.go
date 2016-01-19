@@ -65,7 +65,7 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 
 	if err = user.AddUser(); err != nil {
 		log.Errorln("AddUser ERR: ", err)
-		gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误.")
+		gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误,请联系管理员.")
 		return
 
 	}

@@ -19,9 +19,9 @@ func init() {
 }
 
 func UerLogin(data interface{}) (result interface{}, err error) {
-	var msg = data.(*common.MessageLogin)
-	msg.UpdateTime = time.Now().Unix()
+	var msg = data.(common.MessageLogin)
 	log.Infoln(msg)
+
 	if msg.ClientType == "" {
 		msg.ClientType = "XIM"
 	}
@@ -30,14 +30,13 @@ func UerLogin(data interface{}) (result interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Infoln("current session:", msg, sess)
 
-	var stateInfo = sess.Get(msg.Userid)
-	if stateInfo == nil {
-		stateInfo = make(map[string]*common.MessageLogin)
-
+	msg.UpdateTime = time.Now().Unix()
+	if err = sess.Set(msg.ClientType, &msg); err != nil {
+		return nil, err
 	}
-	stateInfo.(map[string]*common.MessageLogin)[msg.ClientType] = msg
-	log.Infoln("UserLogin OK:", sess)
+	log.Infoln("UserLogin OK:", msg, sess)
 
 	return nil, nil
 }

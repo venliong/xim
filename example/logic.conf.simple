@@ -9,13 +9,18 @@
 	"name":"tgroup-127.0.0.1.6001",
 	"works":{
 		"common.MessageTGLogin":"TempGroupLogin",
-		"common.MessagePushMsg":"TempGroupSend"}
+		"common.MessageForward":"TempGroupSend"}
 	},
 	{
 	"name":"state-127.0.0.1.6002",
 	"works":{
 		"common.MessageLogin":"UerLogin",
 		"common.MessageLogout":"UerLogout"}
+	},
+	{
+	"name":"forward-127.0.0.1.6003",
+	"works":{
+		"common.MessageForward":"ForwardMessage"}
 	}
 	],
 	

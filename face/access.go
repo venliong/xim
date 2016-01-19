@@ -12,14 +12,13 @@ import (
 	"github.com/liuhengloveyou/nodenet"
 	"github.com/liuhengloveyou/passport/session"
 	"github.com/liuhengloveyou/xim/common"
+	"github.com/liuhengloveyou/xim/service"
 
 	log "github.com/golang/glog"
-	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 var (
 	Sig string
-	GID *gocommon.GlobalID
 
 	mynode *nodenet.Component
 )
@@ -39,7 +38,6 @@ func AccessMain() {
 	}
 
 	session.SetPrepireRelease(AccessPrepireRelease)
-	GID = &gocommon.GlobalID{Type: common.AccessConf.NodeName}
 
 	switch *proto {
 	case "tcp":
@@ -61,14 +59,14 @@ func initNodenet(fn string) error {
 		return fmt.Errorf("No node: ", common.AccessConf.NodeName)
 	}
 
-	mynode.RegisterHandler(common.MessagePushMsg{}, dealPushMsg)
+	mynode.RegisterHandler(common.MessageForward{}, dealPushMsg)
 	go mynode.Run()
 
 	return nil
 }
 
 func SendMsgToUser(fromuserid, touserid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName("send"), common.MessagePushMsg{From: fromuserid, To: touserid, Content: message})
+	cMsg := nodenet.NewMessage(common.GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName("send"), common.MessageForward{FromUserid: fromuserid, ToUserid: touserid, Content: message})
 	log.Infoln(cMsg)
 
 	return nodenet.SendMsgToNext(cMsg)
@@ -78,25 +76,25 @@ func AccessPrepireRelease(ss session.SessionStore) {
 	if ss != nil {
 		user := ss.Get("info")
 		if user != nil {
-			user.(*UserSession).Destroy()
+			user.(*service.UserSession).Destroy()
 		}
 	}
 }
 
 func dealPushMsg(data interface{}) (result interface{}, err error) {
-	msg := data.(common.MessagePushMsg)
+	msg := data.(common.MessageForward)
 
-	sess, _ := session.GetSessionById(msg.To)
+	sess, _ := session.GetSessionById(msg.ToUserid)
 	user := sess.Get("info")
 	if user == nil {
-		log.Errorln("No such session: ", msg.To)
+		log.Errorln("No such session: ", msg.ToUserid)
 		return
 	}
 
 	bytemsg, _ := json.Marshal(msg)
 	log.Infoln("processPushMessage:", user, string(bytemsg))
 
-	user.(*UserSession).PushMessage(string(bytemsg))
+	user.(*service.UserSession).PushMessage(string(bytemsg))
 
 	return nil, nil
 }

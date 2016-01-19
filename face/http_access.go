@@ -55,11 +55,7 @@ func optionsFilter(w http.ResponseWriter, r *http.Request) {
 }
 
 func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionStore, auth bool) {
-	if e := r.ParseForm(); e != nil {
-		return nil, false
-	}
-
-	token := strings.TrimSpace(r.FormValue("token"))
+	token := strings.TrimSpace(r.Header.Get("TOKEN"))
 	if token == "" {
 		sessionConf := common.AccessConf.Session.(map[string]interface{})
 		if cookie, e := r.Cookie(sessionConf["cookie_name"].(string)); e == nil {
@@ -87,13 +83,13 @@ func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionSto
 	log.Errorln("passport auth:", sess)
 	info, err := common.Passport.UserAuth(token)
 	if err != nil {
-		log.Errorln("passport auth ERR:", err.Error())
+		log.Errorln("passport auth ERR:", token, err.Error())
 		return nil, false
 	}
 
 	user := &service.User{}
 	if err := json.Unmarshal(info, user); err != nil {
-		log.Errorln("passport response ERR:", string(info))
+		log.Errorln("passport response ERR:", token, string(info))
 		return nil, false
 	}
 
@@ -112,7 +108,7 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, auth := authFilter(w, r)
+	sess, auth := authFilter(w, r)
 	if auth == false {
 		log.Errorln("send ERR: 末登录用户.")
 		gocommon.HttpErr(w, http.StatusForbidden, "末登录用户.")
@@ -120,11 +116,6 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api := r.Header.Get("X-API")
-	if api == "" {
-		log.Errorln("X-API nil")
-		gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
-		return
-	}
 	log.Infoln("sendMessage X-API:", api)
 
 	switch api {
@@ -135,8 +126,19 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		log.Errorln("X-API ERR:", api)
-		gocommon.HttpErr(w, http.StatusBadRequest, "末知的X-API:"+api)
+		body, e := ioutil.ReadAll(r.Body)
+		if e != nil {
+			log.Errorln("get request.body ERR:", e.Error())
+			gocommon.HttpErr(w, http.StatusBadRequest, "请求错误.")
+			return
+
+		}
+
+		if e := service.SendMessage(sess, body); e != nil {
+			log.Errorln("sendMessage ERR:", e.Error())
+			gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误.")
+			return
+		}
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, "OK")
@@ -168,7 +170,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	log.Infoln("recvMessage X-API:", api)
 
 	var (
-		info *UserSession
+		info *service.UserSession
 		e    error
 	)
 
@@ -180,7 +182,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		log.Errorln("userlogin:", sess.Id(""))
-		if info, e = StateUpdate(sess.Id("")); e != nil {
+		if info, e = service.StateUpdate(sess); e != nil {
 			gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误.")
 			return
 		}
@@ -199,10 +201,10 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	if ctx == "" {
 		select {
 		case ctx = <-info.MsgChan:
-		case <-time.After(1 * time.Minute):
+		case <-time.After(10 * time.Minute):
 			ctx = "TIMEOUT" // 长连接每分钟断开一次, 没有心跳
 		case <-w.(http.CloseNotifier).CloseNotify():
-			log.Warningln("client closed:", api, *info)
+			log.Warningln("client closed:", api, sess.Id(""), sess.Get("user"))
 			return
 		}
 	}
@@ -214,7 +216,7 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 // 临时讨论组
-func tgroup(r *http.Request, logic string) (user *UserSession, e error) {
+func tgroup(r *http.Request, logic string) (user *service.UserSession, e error) {
 	if "recv" == logic {
 		userid, groupid := r.FormValue("uid"), r.FormValue("gid")
 		if userid == "" || groupid == "" {
@@ -222,7 +224,7 @@ func tgroup(r *http.Request, logic string) (user *UserSession, e error) {
 		}
 		log.Infoln("tgroup: ", userid, groupid)
 
-		if user, e = TGroutRecv(userid, groupid); e != nil {
+		if user, e = service.TGroutRecv(userid, groupid); e != nil {
 			return nil, e
 		}
 
@@ -238,7 +240,7 @@ func tgroup(r *http.Request, logic string) (user *UserSession, e error) {
 		}
 		log.Infoln("tgroup: ", userid, groupid, string(bm))
 
-		if e = TGroutSend(userid, groupid, string(bm)); e != nil {
+		if e = service.TGroutSend(userid, groupid, string(bm)); e != nil {
 			return nil, e
 		}
 	}

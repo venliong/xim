@@ -35,8 +35,8 @@ var (
 	LogicConf  LogicConfig  // 逻辑层系统配置信息
 
 	Passport *passport.Passport
-
-	DBs = make(map[string]*gocommon.DBmysql)
+	GID      *gocommon.GlobalID
+	DBs      = make(map[string]*gocommon.DBmysql)
 )
 
 func InitAccessServ(confile string) error {
@@ -53,6 +53,8 @@ func InitAccessServ(confile string) error {
 	}
 
 	Passport = &passport.Passport{ServAddr: AccessConf.Passport}
+
+	GID = &gocommon.GlobalID{Type: AccessConf.NodeName}
 
 	return nil
 }

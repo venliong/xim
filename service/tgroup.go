@@ -1,4 +1,4 @@
-package face
+package service
 
 import (
 	"fmt"
@@ -37,7 +37,7 @@ func TGroutRecv(uid, gid string) (info *UserSession, e error) {
 		return nil, fmt.Errorf("graph nil:", common.LOGIC_TEMPGROUP)
 	}
 
-	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, g, common.MessageTGLogin{Uid: uid, Gid: gid, Access: common.AccessConf.NodeName})
+	cMsg := nodenet.NewMessage(common.GID.ID(), common.AccessConf.NodeName, g, common.MessageTGLogin{Uid: uid, Gid: gid, Access: common.AccessConf.NodeName})
 	cMsg.DispenseKey = gid
 
 	if e = nodenet.SendMsgToNext(cMsg); e != nil {
@@ -49,7 +49,7 @@ func TGroutRecv(uid, gid string) (info *UserSession, e error) {
 }
 
 func TGroutSend(uid, gid, message string) error {
-	cMsg := nodenet.NewMessage(GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName(common.LOGIC_TEMPGROUP), &common.MessagePushMsg{From: uid, To: gid, Content: message})
+	cMsg := nodenet.NewMessage(common.GID.ID(), common.AccessConf.NodeName, nodenet.GetGraphByName(common.LOGIC_TEMPGROUP), &common.MessageForward{FromUserid: uid, ToUserid: gid, Content: message})
 	cMsg.DispenseKey = gid
 	log.Infoln(cMsg)
 

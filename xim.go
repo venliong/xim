@@ -14,7 +14,7 @@ import (
 var Sig string
 
 var (
-	service = flag.String("service", "", "启动什么服务? [access | logic]")
+	service = flag.String("service", "", "启动什么服务? [access | logic | data]")
 )
 
 func main() {
@@ -27,6 +27,8 @@ func main() {
 		face.AccessMain()
 	case "logic":
 		logic.LogicMain()
+	case "data":
+
 	default:
 		flag.Usage()
 		os.Exit(0)

@@ -7,13 +7,14 @@ import (
 )
 
 type User struct {
-	Userid  string    `xorm:"VARCHAR(45)"`
-	AddTime time.Time `xorm:"not null TIMESTAMP default 'CURRENT_TIMESTAMP'"`
-	Version int       `xorm:"INT(11) version"`
+	Userid  string
+	Icon    string
+	AddTime time.Time
+	Version int
 }
 
 func (p *User) Insert() (e error) {
-	_, e = common.DBs["xim"].Insert("INSERT INFO user values(?,?,?)", p.Userid, time.Now(), time.Now().Unix())
+	_, e = common.DBs["xim"].Insert("INSERT INTO user(userid,version) values(?,?)", p.Userid, time.Now().Unix())
 
 	return
 }
