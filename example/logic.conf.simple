@@ -1,7 +1,7 @@
 {
 "session": {
 	"store_type":    "mem",	
-	"idle_time":     86400,
+	"idle_time":     864000000,
 	"store_config":  ""},
 
 "nodes":[

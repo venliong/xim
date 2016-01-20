@@ -34,8 +34,9 @@ func SendMessage(sess session.SessionStore, body []byte) (e error) {
 	}
 	message.FromUserid = user.Userid
 	message.FromeAccess = common.AccessConf.NodeName
+	message.MsgId = common.GID.LogicClock(0)
 
-	cMsg := nodenet.NewMessage(fmt.Sprintf("%v", common.GID.LogicClock(0)),
+	cMsg := nodenet.NewMessage(fmt.Sprintf("%v", message.MsgId),
 		common.AccessConf.NodeName,
 		nodenet.GetGraphByName(common.LOGIC_FORWARD),
 		message)

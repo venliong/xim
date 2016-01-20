@@ -83,18 +83,27 @@ func AccessPrepireRelease(ss session.SessionStore) {
 
 func dealPushMsg(data interface{}) (result interface{}, err error) {
 	msg := data.(common.MessageForward)
+	log.Infof("push: %#v", msg)
 
-	sess, _ := session.GetSessionById(msg.ToUserid)
-	user := sess.Get("info")
-	if user == nil {
-		log.Errorln("No such session: ", msg.ToUserid)
-		return
+	sess, err := session.GetSessionById(msg.ToSession)
+	if err != nil {
+		log.Errorln("session ERR:", err)
+		return nil, nil
 	}
 
-	bytemsg, _ := json.Marshal(msg)
-	log.Infoln("processPushMessage:", user, string(bytemsg))
+	if sess.Get("info") == nil {
+		log.Errorf("no info session: %#v", msg)
+		return nil, nil
+	}
+	info := sess.Get("info").(*service.UserSession)
 
-	user.(*service.UserSession).PushMessage(string(bytemsg))
+	msg.ToAccess = ""
+	msg.ToSession = ""
+
+	bytemsg, _ := json.Marshal(msg)
+	log.Infoln("processPushMessage:", info, string(bytemsg))
+
+	info.PushMessage(string(bytemsg))
 
 	return nil, nil
 }

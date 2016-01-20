@@ -57,8 +57,7 @@ func optionsFilter(w http.ResponseWriter, r *http.Request) {
 func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionStore, auth bool) {
 	token := strings.TrimSpace(r.Header.Get("TOKEN"))
 	if token == "" {
-		sessionConf := common.AccessConf.Session.(map[string]interface{})
-		if cookie, e := r.Cookie(sessionConf["cookie_name"].(string)); e == nil {
+		if cookie, e := r.Cookie(common.AccessConf.Session.CookieName); e == nil {
 			if cookie != nil {
 				token = cookie.Value
 			}
@@ -74,6 +73,7 @@ func authFilter(w http.ResponseWriter, r *http.Request) (sess session.SessionSto
 		log.Warningln("session ERR:", err.Error())
 		return nil, false
 	}
+	log.Infoln("auth:", token, sess)
 
 	if sess.Get("user") != nil {
 		return sess, true
@@ -201,16 +201,16 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	if ctx == "" {
 		select {
 		case ctx = <-info.MsgChan:
-		case <-time.After(10 * time.Minute):
-			ctx = "TIMEOUT" // 长连接每分钟断开一次, 没有心跳
+		case <-time.After(3 * time.Minute):
+			ctx = "TIMEOUT" // 长连接每3分钟断开一次, 没有心跳
 		case <-w.(http.CloseNotifier).CloseNotify():
 			log.Warningln("client closed:", api, sess.Id(""), sess.Get("user"))
 			return
 		}
 	}
 
-	log.Infoln("recvover:", ctx)
-	gocommon.HttpErr(w, http.StatusOK, ctx)
+	log.Infoln("Recv OK:", ctx)
+	w.Write([]byte(ctx))
 
 	return
 }

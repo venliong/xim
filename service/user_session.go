@@ -46,13 +46,5 @@ func (p *UserSession) HistoryMessage() string {
 		return ""
 	}
 
-	rst := "[" + p.messages.Front().Value.(string)
-	for e := p.messages.Front().Next(); e != nil; e = e.Next() {
-		rst += "," + e.Value.(string)
-
-	}
-	p.messages.Init()
-	rst += "]"
-
-	return rst
+	return p.messages.Front().Value.(string)
 }

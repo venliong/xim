@@ -11,13 +11,13 @@ import (
 )
 
 type AccessConfig struct {
-	Addr     string      `json:"addr"`
-	Port     int         `json:"port"`
-	NodeName string      `json:"nodeName"`
-	NodeConf string      `json:"nodeConf"`
-	Passport string      `json:"passport"`
-	Session  interface{} `json:"session"`
-	DBs      interface{} `json:"dbs"`
+	Addr     string                  `json:"addr"`
+	Port     int                     `json:"port"`
+	NodeName string                  `json:"nodeName"`
+	NodeConf string                  `json:"nodeConf"`
+	Passport string                  `json:"passport"`
+	Session  *session.SessionManager `json:"session"`
+	DBs      interface{}             `json:"dbs"`
 }
 
 type LogicConfig struct {
@@ -26,8 +26,8 @@ type LogicConfig struct {
 		Name  string            `json:"name"`
 		Works map[string]string `json:"works"`
 	} `json:"nodes"`
-	Session interface{} `json:"session"`
-	DBs     interface{} `json:"dbs"`
+	Session *session.SessionManager `json:"session"`
+	DBs     interface{}             `json:"dbs"`
 }
 
 var (
