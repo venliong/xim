@@ -26,6 +26,7 @@ type StateSession struct {
 func init() {
 	nodenet.RegisterWorker("UerLogin", common.MessageLogin{}, UerLogin)
 	nodenet.RegisterWorker("UerLogout", common.MessageLogout{}, UerLogout)
+	nodenet.RegisterWorker("ForwardMessage", common.MessageForward{}, ForwardMessage)
 }
 
 func UerLogin(data interface{}) (result interface{}, err error) {
@@ -39,7 +40,8 @@ func UerLogin(data interface{}) (result interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Infoln("current session:", msg, sess)
+
+	// 互踩@@
 
 	// 状态会话
 	if nil == sess.Get("info") {
@@ -55,6 +57,11 @@ func UerLogin(data interface{}) (result interface{}, err error) {
 
 	// 最后活动时间
 	info.Alive = time.Now().Unix()
+
+	// 推送消息确认
+	if msg.ConfirmMessage > info.Confirm {
+		info.Confirm = msg.ConfirmMessage
+	}
 
 	// 离线消息
 	if nil != info.Messages {
@@ -88,4 +95,9 @@ func UerLogout(data interface{}) (result interface{}, err error) {
 	stat.UpdateTime = -1 // 不在线状态
 
 	return nil, nil
+}
+
+// 踩人
+func kickOff() {
+
 }

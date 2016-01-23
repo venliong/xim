@@ -28,11 +28,12 @@ const (
 
 // 长连接登入
 type MessageLogin struct {
-	Userid        string // 用户ID
-	ClientType    string // 客户端类型
-	AccessName    string // 接入节点名
-	AccessSession string // 接入节点会话ID
-	UpdateTime    int64  // 状态更新时间
+	Userid         string // 用户ID
+	ClientType     string // 客户端类型
+	AccessName     string // 接入节点名
+	AccessSession  string // 接入节点会话ID
+	ConfirmMessage int64  // 确认的消息标识
+	UpdateTime     int64  // 状态更新时间
 }
 
 // 长连接登出
@@ -45,25 +46,16 @@ type MessageLogout struct {
 
 // 消息路由
 type MessageForward struct {
-	MsgId       int64  `json:"msgid"`             // 消息标识
-	FromUserid  string `json:"fromuser"`          // 消息发送方用户ID
-	FromeAccess string `json:"access,omitempty"`  // 发送用户所在接入点
-	ToUserid    string `json:"touser"`            // 消息接收方ID
-	ToAccess    string `json:"toaccess"`          // 消息接收方所在接入节点名
-	ToSession   string `json:"tosession"`         // 消息接收方在接入节点上的会话ID
-	ToGroupId   string `json:"togroup,omitempty"` // 群组ID或空
-	ShowType    string `json:"type"`              // 消息显示类型
-	Time        int64  `json:"time"`              //消息到逻辑服务的时间
-	Content     string `json:"ctx"`               // 消息内容
-}
-
-// 确认消息
-type MessageConfirm struct {
-	MsgId          int64  // 消息标识
-	ConfirmMessage int64  // 确认的消息标识
-	ClientType     string // 客户端类型
-	FromUserid     string // 消息发送方用户ID
-	FromeAccess    string // 发送用户所在接入点
+	MsgId       int64  `json:"msgid"`               // 消息标识
+	FromUserid  string `json:"fromuser"`            // 消息发送方用户ID
+	FromeAccess string `json:"access,omitempty"`    // 发送用户所在接入点
+	ToUserid    string `json:"touser"`              // 消息接收方ID
+	ToAccess    string `json:"toaccess,omitempty"`  // 消息接收方所在接入节点名
+	ToSession   string `json:"tosession,omitempty"` // 消息接收方在接入节点上的会话ID
+	ToGroupId   string `json:"togroup,omitempty"`   // 群组ID或空
+	ShowType    string `json:"type"`                // 消息显示类型
+	Time        int64  `json:"time"`                //消息到逻辑服务的时间
+	Content     string `json:"ctx"`                 // 消息内容
 }
 
 // 随时讨论组登录

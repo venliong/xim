@@ -68,5 +68,7 @@ func InitLogicServ(confile string) error {
 		return fmt.Errorf("InitDefaultSessionManager err.")
 	}
 
+	GID = &gocommon.GlobalID{}
+
 	return nil
 }

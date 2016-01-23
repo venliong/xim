@@ -5,6 +5,7 @@
 package logic
 
 import (
+	"container/list"
 	"time"
 
 	"github.com/liuhengloveyou/nodenet"
@@ -13,36 +14,6 @@ import (
 
 	log "github.com/golang/glog"
 )
-
-func init() {
-	nodenet.RegisterWorker("ForwardMessage", common.MessageForward{}, ForwardMessage)
-	nodenet.RegisterWorker("ConfirmMessage", common.MessageConfirm{}, ConfirmMessage)
-}
-
-func ConfirmMessage(data interface{}) (result interface{}, err error) {
-	var msg = data.(common.MessageConfirm)
-	log.Infof("ConfirmMessage: %#v\n", msg)
-
-	sess, err := session.GetSessionById(msg.FromUserid)
-	if err != nil {
-		return nil, err
-	}
-
-	if sess.Get("info") != nil {
-		log.Errorf("ConfirmMessage ERR: no info.")
-		return nil, nil
-	}
-	info := sess.Get("info").(*StateSession)
-
-	if info.Confirm > msg.ConfirmMessage {
-		log.Warningf("ConfirmMessage old: %#v. %#v", info, msg)
-		return nil, nil
-	}
-
-	info.Confirm = msg.ConfirmMessage
-
-	return nil, nil
-}
 
 func ForwardMessage(data interface{}) (result interface{}, err error) {
 	var msg = data.(common.MessageForward)
@@ -57,15 +28,14 @@ func ForwardMessage(data interface{}) (result interface{}, err error) {
 	}
 	log.Infof("ForwardMessage tosession: %v, %#v\n", msg.ToUserid, sess)
 
-	if sess.Get("info") != nil {
-		log.Errorf("ForwardMessage ERR: no info.")
-		return nil, nil
+	if sess.Get("info") == nil {
+		sess.Set("info", &StateSession{})
 	}
 	info := sess.Get("info").(*StateSession)
+	setOfflineMessage(info, &msg) // 先放到离线消息队列
 
 	msg.FromeAccess = ""
 	msg.Time = time.Now().Unix()
-	setOfflineMessage(info, &msg) // 先放到离线消息队列
 
 	if info.Alive <= 0 {
 		log.Infof("offline: %v. \n", msg.ToUserid)
@@ -78,23 +48,28 @@ func ForwardMessage(data interface{}) (result interface{}, err error) {
 }
 
 func dealOfflineMessage(sess session.SessionStore, info *StateSession) {
+	info.lock.Lock()
+	defer info.lock.Unlock()
+
+	// 删除已经确认的
 	for info.Messages.Len() > 0 {
-		info.lock.Lock()
+		el := info.Messages.Front()
+		one := el.Value.(*common.MessageForward)
+		if one.MsgId >= info.Confirm {
+			break
+		}
 
-		e := info.Messages.Front()
+		info.Messages.Remove(el)
+	}
+
+	for e, max := info.Messages.Front(), 5; e != nil && max > 0; e, max = e.Next(), max-1 {
 		one := e.Value.(*common.MessageForward)
-		if one.MsgId <= info.Confirm {
-			info.Messages.Remove(e)
-			info.lock.Unlock()
-			continue
-		}
-
+		log.Infoln("dealOfflineMessage:", one)
 		if one.MsgId <= info.Pushed {
-			info.lock.Unlock()
 			continue
 		}
-		info.lock.Unlock()
 
+		log.Infof("pushmsg: %#v. %#v", info, one)
 		if pushMessage(sess, one) == true {
 			info.Pushed = one.MsgId // 推送成功
 		}
@@ -102,6 +77,7 @@ func dealOfflineMessage(sess session.SessionStore, info *StateSession) {
 
 }
 
+// 一次推一条
 func pushMessage(sess session.SessionStore, message *common.MessageForward) (ok bool) {
 	cMsg := nodenet.NewMessage("", "", make([]string, 0), nil)
 	keys := sess.Keys()
@@ -137,5 +113,10 @@ func setOfflineMessage(info *StateSession, message *common.MessageForward) {
 	info.lock.Lock()
 	defer info.lock.Unlock()
 
+	if info.Messages == nil {
+		info.Messages = list.New()
+	}
+
+	log.Infof("setOfflineMessage: %#v. %#v", info, message)
 	info.Messages.PushBack(message)
 }

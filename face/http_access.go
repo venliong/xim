@@ -160,13 +160,6 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api := r.Header.Get("X-API")
-	/*
-		if api == "" {
-			log.Errorln("X-API nil")
-			gocommon.HttpErr(w, http.StatusBadRequest, "X-API为空.")
-			return
-		}
-	*/
 	log.Infoln("recvMessage X-API:", api)
 
 	var (
@@ -181,8 +174,8 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		log.Errorln("userlogin:", sess.Id(""))
 		if info, e = service.StateUpdate(sess); e != nil {
+			log.Errorln("StateUpdate ERR:", e)
 			gocommon.HttpErr(w, http.StatusInternalServerError, "系统错误.")
 			return
 		}
@@ -197,19 +190,16 @@ func recvMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := info.HistoryMessage()
-	if ctx == "" {
-		select {
-		case ctx = <-info.MsgChan:
-		case <-time.After(3 * time.Minute):
-			ctx = "TIMEOUT" // 长连接每3分钟断开一次, 没有心跳
-		case <-w.(http.CloseNotifier).CloseNotify():
-			log.Warningln("client closed:", api, sess.Id(""), sess.Get("user"))
-			return
-		}
+	ctx := ""
+	select {
+	case ctx = <-info.MsgChan:
+	case <-time.After(1 * time.Minute):
+		ctx = "TIMEOUT" // 长连接每1分钟断开一次, 没有心跳
+	case <-w.(http.CloseNotifier).CloseNotify():
+		log.Warningln("client closed:", api, sess.Id(""), sess.Get("user"))
 	}
 
-	log.Infoln("Recv OK:", ctx)
+	log.Infoln("Recv OK:", sess.Id(""), sess.Get("user"), ctx)
 	w.Write([]byte(ctx))
 
 	return

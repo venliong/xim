@@ -5,7 +5,6 @@
 package face
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 
@@ -100,10 +99,8 @@ func dealPushMsg(data interface{}) (result interface{}, err error) {
 	msg.ToAccess = ""
 	msg.ToSession = ""
 
-	bytemsg, _ := json.Marshal(msg)
-	log.Infoln("processPushMessage:", info, string(bytemsg))
-
-	info.PushMessage(string(bytemsg))
+	log.Infof("processPushMessage: %#v. %#v", info, msg)
+	info.PushMessage(&msg)
 
 	return nil, nil
 }
